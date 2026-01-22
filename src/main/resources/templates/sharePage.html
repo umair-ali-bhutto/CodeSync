@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Code Sync</title>
+<style>
+textarea {
+	width: 100%;
+	height: 90vh;
+	font-family: monospace;
+	font-size: 14px;
+}
+</style>
+</head>
+<body>
+
+<textarea id="editor"></textarea>
+
+<script>
+const shareKey = "[[${shareKey}]]";
+const apiUrl = "/codesync/api/share/" + shareKey;
+
+let debounceTimer;
+let lastContent = "";
+let userTyping = false;
+
+// Load initial content
+fetch(apiUrl)
+    .then(res => res.text())
+    .then(text => {
+        document.getElementById("editor").value = text;
+        lastContent = text;
+    });
+
+// Auto-save (debounced)
+document.getElementById("editor").addEventListener("input", function () {
+    userTyping = true;
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+        const content = this.value;
+        fetch(apiUrl, {
+            method: "PUT",
+            headers: { "Content-Type": "text/plain" },
+            body: content
+        }).then(() => {
+            lastContent = content;  // Update only after successful save
+            userTyping = false;     // Done typing
+        }).catch(err => {
+            console.error("Save failed:", err);
+            userTyping = false;
+        });
+    }, 800); // 800ms debounce after typing stops
+});
+
+// Poll for updates every 2 seconds
+setInterval(() => {
+    if (userTyping) return; // Don't overwrite while user is typing
+    fetch(apiUrl)
+        .then(res => res.text())
+        .then(text => {
+            if (text !== lastContent) {
+                document.getElementById("editor").value = text;
+                lastContent = text;
+            }
+        }).catch(err => console.error("Polling failed:", err));
+}, 2000);
+
+</script>
+
+</body>
+</html>
