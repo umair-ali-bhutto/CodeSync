@@ -16,7 +16,7 @@
 	<artifactId>CodeSync</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<packaging>war</packaging>
-	<name>CodeSync</name>
+	<name>codesync</name>
 	<description>A simple Codeshare.io–like application</description>
 
 	<properties>
@@ -150,7 +150,7 @@
 	</dependencies>
 
 	<build>
-		<finalName>CodeSync</finalName>
+		<finalName>codesync</finalName>
 		<plugins>
 			<!-- Spring Boot Maven Plugin -->
 			<plugin>
