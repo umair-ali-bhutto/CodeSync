@@ -1,70 +1,347 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
-<title>Code Sync</title>
-<style>
-textarea {
-	width: 100%;
-	height: 90vh;
-	font-family: monospace;
-	font-size: 14px;
-}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Sync</title>
+    <style>
+        /* -------------------- Global -------------------- */
+        :root {
+            --bg-light: #f5f5f5;
+            --bg-dark: #1e1e2f;
+            --text-light: #111;
+            --text-dark: #f0f0f0;
+            --accent: #4fc3f7;
+            --editor-bg-light: #fff;
+            --editor-bg-dark: #2b2b3d;
+            --shadow: rgba(0, 0, 0, 0.2);
+            --transition-speed: 0.3s;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-light);
+            color: var(--text-light);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            transition: background-color var(--transition-speed), color var(--transition-speed);
+        }
+
+        /* -------------------- Header -------------------- */
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.5rem 1rem;
+            background-color: var(--editor-bg-light);
+            box-shadow: 0 2px 5px var(--shadow);
+            transition: background-color var(--transition-speed);
+        }
+
+        header .left {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .logo {
+            width: 150px;
+            height: 32px;
+            background-color: var(--accent);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #fff;
+            user-select: none;
+        }
+
+        .api-name {
+            font-weight: 500;
+            font-size: 1rem;
+        }
+
+        header .right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .toggle {
+            cursor: pointer;
+            width: 50px;
+            height: 24px;
+            background: #ccc;
+            border-radius: 12px;
+            position: relative;
+            transition: background var(--transition-speed);
+        }
+
+        .toggle::before {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: #fff;
+            border-radius: 50%;
+            transition: transform var(--transition-speed);
+        }
+
+        .toggle.active {
+            background: var(--accent);
+        }
+
+        .toggle.active::before {
+            transform: translateX(26px);
+        }
+
+        /* Loader */
+        .loader {
+            border: 3px solid rgba(0, 0, 0, 0.2);
+            border-top: 3px solid var(--accent);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            opacity: 0;
+            transition: opacity var(--transition-speed);
+        }
+
+        .loader.active {
+            opacity: 1;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* -------------------- Editor -------------------- */
+        .editor-container {
+            flex: 1;
+            padding: 1rem;
+        }
+
+        #editor {
+            width: 100%;
+            height: 100%;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            border-radius: 10px;
+            border: 1px solid #444;
+            background-color: var(--editor-bg-light);
+            color: var(--text-light);
+            resize: none;
+            box-shadow: 0 4px 10px var(--shadow);
+            outline: none;
+            transition: background-color var(--transition-speed), color var(--transition-speed), border var(--transition-speed), box-shadow var(--transition-speed);
+        }
+
+        #editor:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 12px var(--accent);
+        }
+
+        /* -------------------- Dark Mode -------------------- */
+        body.dark {
+            background-color: var(--bg-dark);
+            color: var(--text-dark);
+        }
+
+        body.dark header {
+            background-color: #2b2b3d;
+        }
+
+        body.dark #editor {
+            background-color: var(--editor-bg-dark);
+            color: var(--text-dark);
+            border-color: #555;
+        }
+
+        /* -------------------- Responsive -------------------- */
+        @media(max-width: 600px) {
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+
+            .right {
+                gap: 0.5rem;
+            }
+        }
+
+        /* -------------------- Share Button -------------------- */
+        .share-btn {
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            background: var(--accent);
+            color: #fff;
+            font-size: 0.9rem;
+            font-weight: 500;
+            box-shadow: 0 2px 6px var(--shadow);
+            transition: transform 0.15s ease, opacity 0.15s ease;
+        }
+
+        .share-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .share-btn:active {
+            transform: translateY(0);
+        }
+
+        body.dark .share-btn {
+            background: #5dade2;
+        }
+    </style>
 </head>
+
 <body>
 
-<textarea id="editor"></textarea>
+    <header>
+        <div class="left">
+            <div class="logo">Code Sync</div>
+            <div class="api-name" id="api-name">Welcome To Code Sharing Site ---------- URL Opened: /[[${shareKey}]]
+            </div>
+        </div>
 
-<script>
-const shareKey = "[[${shareKey}]]";
-const apiUrl = "/codesync/api/share/" + shareKey;
+        <div class="right">
+            <button class="share-btn" id="share-btn">🔗 Share URL</button>
+            <div class="loader" id="loader"></div>
+            <div class="toggle" id="mode-toggle"></div>
+        </div>
+    </header>
 
-let debounceTimer;
-let lastContent = "";
-let userTyping = false;
+    <div class="editor-container">
+        <textarea id="editor" spellcheck="false"></textarea>
+    </div>
 
-// Load initial content
-fetch(apiUrl)
-    .then(res => res.text())
-    .then(text => {
-        document.getElementById("editor").value = text;
-        lastContent = text;
-    });
-
-// Auto-save (debounced)
-document.getElementById("editor").addEventListener("input", function () {
-    userTyping = true;
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => {
-        const content = this.value;
-        fetch(apiUrl, {
-            method: "PUT",
-            headers: { "Content-Type": "text/plain" },
-            body: content
-        }).then(() => {
-            lastContent = content;  // Update only after successful save
-            userTyping = false;     // Done typing
-        }).catch(err => {
-            console.error("Save failed:", err);
-            userTyping = false;
+    <script>
+        /* -------------------- Dark/Light Mode -------------------- */
+        const toggle = document.getElementById('mode-toggle');
+        toggle.addEventListener('click', () => {
+            document.body.classList.toggle('dark');
+            toggle.classList.toggle('active');
         });
-    }, 800); // 800ms debounce after typing stops
-});
 
-// Poll for updates every 2 seconds
-setInterval(() => {
-    if (userTyping) return; // Don't overwrite while user is typing
-    fetch(apiUrl)
-        .then(res => res.text())
-        .then(text => {
-            if (text !== lastContent) {
-                document.getElementById("editor").value = text;
+        /* -------------------- Loader -------------------- */
+        const loader = document.getElementById('loader');
+        function showLoader() { loader.classList.add('active'); }
+        function hideLoader() { loader.classList.remove('active'); }
+
+        /* -------------------- Editor Functionality -------------------- */
+        const editor = document.getElementById("editor");
+        const shareKey = "[[${shareKey}]]";
+        const apiUrl = "/codesync/api/share/" + shareKey;
+
+        let debounceTimer;
+        let lastContent = "";
+        let userTyping = false;
+
+        // Load initial content
+        showLoader();
+        fetch(apiUrl)
+            .then(res => res.text())
+            .then(text => {
+                editor.value = text;
                 lastContent = text;
-            }
-        }).catch(err => console.error("Polling failed:", err));
-}, 2000);
+                hideLoader();
+            })
+            .catch(err => { console.error(err); hideLoader(); });
 
-</script>
+        // Auto-save (debounced)
+        editor.addEventListener("input", function () {
+            userTyping = true;
+            showLoader();
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                const content = this.value;
+                fetch(apiUrl, {
+                    method: "POST",
+                    headers: { "Content-Type": "text/plain" },
+                    body: content
+                }).then(() => {
+                    lastContent = content;
+                    userTyping = false;
+                    hideLoader();
+                }).catch(err => {
+                    console.error("Save failed:", err);
+                    userTyping = false;
+                    hideLoader();
+                });
+            }, 1000);
+        });
+
+        // Poll for updates every 3 seconds
+        setInterval(() => {
+            if (userTyping) return;
+            showLoader();
+            fetch(apiUrl)
+                .then(res => res.text())
+                .then(text => {
+                    if (text !== lastContent) {
+                        editor.value = text;
+                        lastContent = text;
+                    }
+                    hideLoader();
+                })
+                .catch(err => { console.error("Polling failed:", err); hideLoader(); });
+        }, 3000);
+    </script>
+
+    <script>
+        /* -------------------- Share URL -------------------- */
+        const shareBtn = document.getElementById("share-btn");
+        const shareUrl = window.location.origin + "/codesync/share/" + shareKey;
+
+        function copyTextFallback(text) {
+            const tempInput = document.createElement("textarea");
+            tempInput.value = text;
+            tempInput.style.position = "fixed"; // prevent scroll jump
+            tempInput.style.opacity = "0";
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand("copy");
+            document.body.removeChild(tempInput);
+        }
+
+        shareBtn.addEventListener("click", async () => {
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(shareUrl);
+                } else {
+                    copyTextFallback(shareUrl);
+                }
+
+                shareBtn.textContent = "✅ Copied!";
+                setTimeout(() => shareBtn.textContent = "🔗 Share URL", 1500);
+
+            } catch (err) {
+                console.error("Clipboard failed:", err);
+                alert("Copy failed. Please copy manually:\n" + shareUrl);
+            }
+        });
+    </script>
+
+
 
 </body>
+
 </html>

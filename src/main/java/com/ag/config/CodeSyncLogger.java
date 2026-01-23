@@ -1,6 +1,7 @@
 package com.ag.config;
 
 import javax.persistence.NoResultException;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -16,9 +17,11 @@ public class CodeSyncLogger {
 	 * @param message the info message to log
 	 */
 	public static void logInfo(@SuppressWarnings("rawtypes") java.lang.Class obj, String message) {
-		final Logger logger = LogManager.getLogger(obj);
-		if (logger.isInfoEnabled()) {
-			logger.info(message);
+		if (StartUpInit.getEnableLogs().equals("Y")) {
+			final Logger logger = LogManager.getLogger(obj);
+			if (logger.isInfoEnabled()) {
+				logger.info(message);
+			}
 		}
 	}
 
@@ -28,9 +31,11 @@ public class CodeSyncLogger {
 	 * @param message the info message to log
 	 */
 	public static void logInfo(String message) {
-		final Logger logger = LogManager.getLogger(CodeSyncLogger.class);
-		if (logger.isInfoEnabled()) {
-			logger.info(message);
+		if (StartUpInit.getEnableLogs().equals("Y")) {
+			final Logger logger = LogManager.getLogger(CodeSyncLogger.class);
+			if (logger.isInfoEnabled()) {
+				logger.info(message);
+			}
 		}
 	}
 
@@ -40,9 +45,11 @@ public class CodeSyncLogger {
 	 * @param message the debug message to log
 	 */
 	public static void logDebug(String message) {
-		final Logger logger = LogManager.getLogger(CodeSyncLogger.class);
-		if (logger.isDebugEnabled()) {
-			logger.debug(message);
+		if (StartUpInit.getEnableLogs().equals("Y")) {
+			final Logger logger = LogManager.getLogger(CodeSyncLogger.class);
+			if (logger.isDebugEnabled()) {
+				logger.debug(message);
+			}
 		}
 	}
 
@@ -53,9 +60,11 @@ public class CodeSyncLogger {
 	 * @param message the debug message to log
 	 */
 	public static void logDebug(@SuppressWarnings("rawtypes") java.lang.Class obj, String message) {
-		final Logger logger = LogManager.getLogger(obj);
-		if (logger.isDebugEnabled()) {
-			logger.debug(message);
+		if (StartUpInit.getEnableLogs().equals("Y")) {
+			final Logger logger = LogManager.getLogger(obj);
+			if (logger.isDebugEnabled()) {
+				logger.debug(message);
+			}
 		}
 	}
 

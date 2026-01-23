@@ -34,8 +34,8 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint, Se
 				+ "				<h1>401 Unauthorized</h1>\n"
 				+ "				<p>You are not authorized to access this resource.</p>\n"
 				+ "				<p><strong>Correct way to use this URL:</strong></p>\n" + "				<ul>\n"
-				+ "					<li>Include a valid endpoint. http://IP:PORT/codesync/yourendpoint </li>\n"
-				+ "					<li>Example: <code> http://172.190.1.223:8087/codesync/yourendpoint </code></li>\n"
+				+ "					<li>Include a valid endpoint. http://IP:PORT/codesync/share/yourendpoint </li>\n"
+				+ "					<li>Example: <code> https://demo.accessgroup.mobi/codesync/share/yourendpoint </code></li>\n"
 				+ "				</ul>\n" + "			</body>\n" + "			</html>\n" + "			");
 	}
 }

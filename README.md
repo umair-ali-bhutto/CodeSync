@@ -152,7 +152,7 @@ DELETE /api/share/{key}
 
 Example:
 
-[http://localhost:8080/share/umair](http://localhost:8080/share/umair)
+[http://localhost:8081/codesync/share/umair](http://localhost:8081/codesync/share/umair)
 
 All users opening the same URL will see and edit the same content.
 
