@@ -5,6 +5,45 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Code Sync</title>
+
+    <link rel="icon" href="https://umair-ali-bhutto.github.io/assets/CodePenIcon/logo.png">
+
+    <!-- ==================== Meta Information ==================== -->
+	<meta name="author" content="Umair Ali Bhutto">
+	<meta property="article:author" content="umair ali bhutto">
+
+	<meta name="description" content="CodeSync is a lightweight, real-time code and text sharing platform inspired by Codeshare.io. Instantly create a shareable URL, collaborate live, and sync code or notes across multiple users with auto-save and near real-time updates." />
+
+	<meta name="copyright" content="© 2025 Umair Ali Bhutto (Just Kidding No Copy Right From Me Is Possible Because Code Is Copied From ChatGPT">
+	<meta name="publisher" content="Umair Ali Bhutto">
+
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta http-equiv="Cache-Control" content="no-cache">
+	<meta http-equiv="Pragma" content="no-cache">
+    
+	<!-- ==================== Open Graph (Facebook, WhatsApp, LinkedIn) ==================== -->
+	<meta property="og:title" content="CodeSync – Real-Time Code Sharing Made Simple">
+	<meta property="og:description" content="CodeSync lets you instantly share code and text using a simple URL. Collaborate in real time with auto-save, live updates, and zero sign-up required.">
+	<meta property="og:type" content="website">
+	<meta property="og:site_name" content="CodeSync">
+	<meta property="og:url" content="https://demo.accessgroup.mobi/codesync/share/">
+	<meta property="og:image" content="https://umair-ali-bhutto.github.io/assets/CodePenIcon/logo.png">
+
+	<!-- ==================== Twitter / X ==================== -->
+	<meta name="twitter:card" content="summary_large_image">
+	<meta name="twitter:title" content="CodeSync – Real-Time Code Sharing">
+	<meta name="twitter:description" content="Instantly share and collaborate on code or text using a simple link. Auto-save, live updates, and no authentication required.">
+	<meta name="twitter:image" content="https://umair-ali-bhutto.github.io/assets/CodePenIcon/logo.png">
+
+    <meta name="theme-color" content="#ffffff">
+    <meta name="application-name" content="Code Sync" />
+    
+    <meta name="keywords" content="umair-ali-bhutto, umair ali bhutto, umair, ali, bhutto, CodeSync, HTML, CSS, JavaScript, Web Development, Umair Ali Bhutto, Frontend Development, JavaScript Animations, CSS3, HTML5, Responsive Design, Web Design Inspiration, Code Sharing, codeshare, User Interface, UI Design, UX Design, Design Patterns, Developer Tools, Open Source, Github, github, GitHub Pages, Portfolio, code snippets, interactive web design, modern web development, coding skills, front-end tutorials, web projects, web animations, CSS grid, flexbox, JavaScript libraries, HTML5 canvas, DOM manipulation, web effects, animations, beginner projects, JAVA, web developer resources, showcase, design showcase, creative portfolio, JavaScript coding practices, CSS techniques, web trends, coding exercises, learn to code, web engineering, modern coding practices, tech community, personal project, website showcase, software engineering, front-end engineering, digital creativity, open web, developer showcase, community code, online coding, creative tech, web prototypes, design portfolio">
+    
+    <meta name="msapplication-TileColor" content="#ffffff" />
+    <meta name="msapplication-TileImage" content="https://umair-ali-bhutto.github.io/assets/CodePenIcon/logo.png" />
+    
+    
     <style>
         /* -------------------- Global -------------------- */
         :root {
@@ -12,7 +51,7 @@
             --bg-dark: #1e1e2f;
             --text-light: #111;
             --text-dark: #f0f0f0;
-            --accent: #4fc3f7;
+            --accent:  #005b8a;
             --editor-bg-light: #fff;
             --editor-bg-dark: #2b2b3d;
             --shadow: rgba(0, 0, 0, 0.2);
@@ -208,14 +247,22 @@
         }
 
         body.dark .share-btn {
-            background: #5dade2;
+            background: var(--accent);
+        }
+        
+        /* -------------------- FOOTER -------------------- */
+        
+        .footer {
+       		margin-bottom: 5px;
+    		margin-left: 5px;
+    		font-size: small;
         }
     </style>
 </head>
 
 <body>
 
-    <header>
+    <header role="banner">
         <div class="left">
             <div class="logo">Code Sync</div>
             <div class="api-name" id="api-name">Welcome To Code Sharing Site ---------- URL Opened: /[[${shareKey}]]
@@ -229,9 +276,17 @@
         </div>
     </header>
 
+
+	<main role="main">
+	</main>
+
     <div class="editor-container">
-        <textarea id="editor" spellcheck="false"></textarea>
+        <textarea id="editor" spellcheck="false" aria-label="text editor" placeholder="Write Here"></textarea>
     </div>
+    
+    <footer role="contentinfo" class="footer">
+   		<p> @Version-20260126-1.0.0 </p>
+	</footer>
 
     <script>
         /* -------------------- Dark/Light Mode -------------------- */
@@ -289,20 +344,28 @@
             }, 1000);
         });
 
-        // Poll for updates every 3 seconds
+     // Poll for updates every 3 seconds
         setInterval(() => {
             if (userTyping) return;
             showLoader();
             fetch(apiUrl)
-                .then(res => res.text())
-                .then(text => {
+                .then(res => {
+                    if (!res.ok) {
+                        console.warn("Polling failed:", res.status, res.statusText);
+                        throw new Error("HTTP " + res.status);
+                    }
+                    return res.text();
+                }).then(text => {
                     if (text !== lastContent) {
                         editor.value = text;
                         lastContent = text;
                     }
-                    hideLoader();
+                }).catch(err => {
+                    console.error("Polling error:", err.message);
                 })
-                .catch(err => { console.error("Polling failed:", err); hideLoader(); });
+                .finally(() => {
+                    hideLoader();
+                });
         }, 3000);
     </script>
 

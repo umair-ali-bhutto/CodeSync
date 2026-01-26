@@ -33,7 +33,8 @@ public class LogController {
     public ResponseEntity<Void> saveOrUpdate(@RequestBody(required = true) Map<String, Object> body) {
         try {
             if (body == null || !body.containsKey("enable.logs")) {
-                CodeSyncLogger.logInfo("Logs service called with missing 'enable.logs'. Defaulting to 'N'.");
+            	StartUpInit.setEnableLogs("Y");
+            	CodeSyncLogger.logInfo("Logs service called with missing 'enable.logs'. Defaulting to 'N'.");
                 StartUpInit.setEnableLogs("N");
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
             }
@@ -41,11 +42,14 @@ public class LogController {
             String value = body.get("enable.logs").toString().trim().toUpperCase();
 
             if (!value.equals("Y") && !value.equals("N")) {
+            	StartUpInit.setEnableLogs("Y");
                 CodeSyncLogger.logInfo("Invalid value for enable.logs: " + value + ". Defaulting to 'N'.");
+                StartUpInit.setEnableLogs("N");
                 value = "N";
             }
 
-            CodeSyncLogger.logInfo("Logs service called. Setting enableLogs=" + value);
+			StartUpInit.setEnableLogs("Y");
+			CodeSyncLogger.logInfo("Logs service called. Setting enableLogs=" + value);
             StartUpInit.setEnableLogs(value);
 
         } catch (Exception e) {
