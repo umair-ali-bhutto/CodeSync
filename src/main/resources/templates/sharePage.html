@@ -288,86 +288,106 @@
    		<p> @Version-20260126-1.0.0 </p>
 	</footer>
 
-    <script>
-        /* -------------------- Dark/Light Mode -------------------- */
-        const toggle = document.getElementById('mode-toggle');
-        toggle.addEventListener('click', () => {
-            document.body.classList.toggle('dark');
-            toggle.classList.toggle('active');
-        });
 
-        /* -------------------- Loader -------------------- */
-        const loader = document.getElementById('loader');
-        function showLoader() { loader.classList.add('active'); }
-        function hideLoader() { loader.classList.remove('active'); }
 
-        /* -------------------- Editor Functionality -------------------- */
-        const editor = document.getElementById("editor");
-        const shareKey = "[[${shareKey}]]";
-        const apiUrl = "/codesync/api/share/" + shareKey;
 
-        let debounceTimer;
-        let lastContent = "";
-        let userTyping = false;
+<script>
+/* -------------------- Dark/Light Mode -------------------- */
+const toggle = document.getElementById('mode-toggle');
+toggle.addEventListener('click', () => {
+    document.body.classList.toggle('dark');
+    toggle.classList.toggle('active');
+});
 
-        // Load initial content
+/* -------------------- Loader -------------------- */
+const loader = document.getElementById('loader');
+function showLoader() { loader.classList.add('active'); }
+function hideLoader() { loader.classList.remove('active'); }
+
+/* -------------------- Editor & Auto Save -------------------- */
+const editor = document.getElementById("editor");
+const shareKey = "[[${shareKey}]]";
+const apiUrl = "/codesync/api/share/" + shareKey;
+
+let debounceTimer;
+let lastContent = "";
+let userTyping = false;
+
+/* Initial load */
+showLoader();
+fetch(apiUrl)
+    .then(r => r.text())
+    .then(t => {
+        editor.value = t;
+        lastContent = t;
+    })
+    .catch(console.error)
+    .finally(hideLoader);
+
+/* Auto-save (debounced) */
+editor.addEventListener("input", function () {
+    userTyping = true;
+    clearTimeout(debounceTimer);
+
+    debounceTimer = setTimeout(() => {
         showLoader();
-        fetch(apiUrl)
-            .then(res => res.text())
-            .then(text => {
-                editor.value = text;
-                lastContent = text;
-                hideLoader();
-            })
-            .catch(err => { console.error(err); hideLoader(); });
+        fetch(apiUrl, {
+            method: "POST",
+            headers: { "Content-Type": "text/plain" },
+            body: editor.value
+        }).then(() => { lastContent = editor.value; })
+          .catch(err => console.error("Save failed:", err))
+          .finally(() => { userTyping = false; hideLoader(); });
+    }, 1000);
+});
+</script>
 
-        // Auto-save (debounced)
-        editor.addEventListener("input", function () {
-            userTyping = true;
-            showLoader();
-            clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(() => {
-                const content = this.value;
-                fetch(apiUrl, {
-                    method: "POST",
-                    headers: { "Content-Type": "text/plain" },
-                    body: content
-                }).then(() => {
-                    lastContent = content;
-                    userTyping = false;
-                    hideLoader();
-                }).catch(err => {
-                    console.error("Save failed:", err);
-                    userTyping = false;
-                    hideLoader();
-                });
-            }, 1000);
-        });
+<script>
+/* -------------------- NORMAL POLLING -------------------- */
+let pollInProgress = false;
 
-     // Poll for updates every 3 seconds
-        setInterval(() => {
-            if (userTyping) return;
-            showLoader();
-            fetch(apiUrl)
-                .then(res => {
-                    if (!res.ok) {
-                        console.warn("Polling failed:", res.status, res.statusText);
-                        throw new Error("HTTP " + res.status);
-                    }
-                    return res.text();
-                }).then(text => {
-                    if (text !== lastContent) {
-                        editor.value = text;
-                        lastContent = text;
-                    }
-                }).catch(err => {
-                    console.error("Polling error:", err.message);
-                })
-                .finally(() => {
-                    hideLoader();
-                });
-        }, 3000);
-    </script>
+function poll() {
+    if (userTyping || pollInProgress) return setTimeout(poll, 3000);
+
+    pollInProgress = true;
+    showLoader();
+
+    fetch(apiUrl)
+        .then(r => { if (!r.ok) throw new Error(r.status); return r.text(); })
+        .then(t => { if (t !== lastContent) { editor.value = t; lastContent = t; } })
+        .catch(err => console.error("Polling error:", err))
+        .finally(() => { pollInProgress = false; hideLoader(); setTimeout(poll, 3000); });
+}
+poll();
+</script>
+ 
+ <!-- 
+ <script>
+/* -------------------- POLLING WITH TIMEOUT -------------------- */
+function fetchWithTimeout(url, options = {}, timeout = 8000) {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+    return fetch(url, { ...options, signal: controller.signal })
+        .finally(() => clearTimeout(id));
+}
+
+let pollInProgressTimeout = false;
+
+function pollWithTimeout() {
+    if (userTyping || pollInProgressTimeout) return setTimeout(pollWithTimeout, 3000);
+
+    pollInProgressTimeout = true;
+
+    fetchWithTimeout(apiUrl)
+        .then(r => r.text())
+        .then(t => { if (t !== lastContent) { editor.value = t; lastContent = t; } })
+        .catch(err => console.warn("Poll failed:", err))
+        .finally(() => { pollInProgressTimeout = false; setTimeout(pollWithTimeout, 3000); });
+}
+pollWithTimeout();
+</script>
+ -->
+ 
 
     <script>
         /* -------------------- Share URL -------------------- */

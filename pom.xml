@@ -71,6 +71,7 @@
 			</exclusions>
 		</dependency>
 
+
 		<!-- Tomcat provided for WAR -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -90,15 +91,8 @@
 		</dependency>
 
 
-		<!-- MySQL Driver -->
-		<!-- <dependency>
-			<groupId>mysql</groupId>
-			<artifactId>mysql-connector-java</artifactId>
-			<scope>runtime</scope>
-		</dependency>  -->
 
 
-		<!-- Missing dependency -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-thymeleaf</artifactId>
@@ -110,21 +104,22 @@
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
-		
+
 		<!-- Microsoft SQL Server JDBC Driver -->
 		<dependency>
 			<groupId>com.microsoft.sqlserver</groupId>
 			<artifactId>mssql-jdbc</artifactId>
 		</dependency>
-		
+
 		<!-- ORACLE JDBC Driver -->
-		<dependency>
-			<groupId>com.oracle.database.jdbc</groupId>
-			<artifactId>ojdbc8</artifactId>
-		</dependency>
-		
-		
-		
+		<!-- <dependency> <groupId>com.oracle.database.jdbc</groupId> <artifactId>ojdbc8</artifactId> 
+			</dependency> -->
+
+		<!-- MySQL Driver -->
+		<!-- <dependency> <groupId>mysql</groupId> <artifactId>mysql-connector-java</artifactId> 
+			<scope>runtime</scope> </dependency> -->
+
+
 		<!-- Add Log4j2 starter -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -146,7 +141,15 @@
 			<artifactId>json-simple</artifactId>
 			<version>1.1</version>
 		</dependency>
-		
+
+
+		<!-- Bucket4j for Rate Limitting -->
+		<dependency>
+			<groupId>com.github.vladimir-bukhtoyarov</groupId>
+			<artifactId>bucket4j-core</artifactId>
+			<version>4.10.0</version>
+		</dependency>
+
 	</dependencies>
 
 	<build>
