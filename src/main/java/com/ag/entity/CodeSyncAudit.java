@@ -36,6 +36,9 @@ public class CodeSyncAudit {
 	@Column(name = "STATUS_CODE")
 	private int statusCode;
 
+	@Column(name = "CONTENT_SIZE")
+	private int contentSize;
+
 	@Lob
 	@Column(name = "REQUEST_BODY")
 	private String requestBody;
@@ -105,6 +108,14 @@ public class CodeSyncAudit {
 
 	public void setStatusCode(int statusCode) {
 		this.statusCode = statusCode;
+	}
+
+	public int getContentSize() {
+		return contentSize;
+	}
+
+	public void setContentSize(int contentSize) {
+		this.contentSize = contentSize;
 	}
 
 	public String getRequestBody() {

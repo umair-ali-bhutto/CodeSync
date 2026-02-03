@@ -79,7 +79,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 				// 🚫 IP BLOCKING
 				if (protectionConfig.isBlocked(clientIp)) {
 					response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-					response.getWriter().write("IP blocked");
+					response.getWriter().write("Sorry IP blocked");
 					logAndAudit(wrappedRequest, response, clientIp, start);
 					return;
 				}
@@ -130,6 +130,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 		log.setQueryString(query);
 		log.setClientIp(clientIp);
 		log.setStatusCode(response.getStatus());
+		log.setContentSize(body.length());
 		log.setRequestBody(body);
 		log.setDurationMs(duration);
 		log.setForwardedFor(request.getHeader("X-Forwarded-For"));
@@ -137,9 +138,11 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
 		codeSyncAuditService.saveSafely(log);
 
+		String bodyLog = (body.length() <= 10000) ? " | Body=" + body : " | Body too large not logging";
+
 		CodeSyncLogger.logInfo("SECURITY FILTER | " + method + " " + uri + (query != null ? "?" + query : "") + " | IP="
-				+ clientIp + " | Status=" + response.getStatus() + " | Time=" + duration + "ms"
-				+ (body.isEmpty() ? "" : " | Body=" + body));
+				+ clientIp + " | Status=" + response.getStatus() + " | Time=" + duration + "ms | content size: "
+				+ body.length() + "" + bodyLog);
 	}
 
 	/**
