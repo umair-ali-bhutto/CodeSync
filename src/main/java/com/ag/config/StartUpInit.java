@@ -13,7 +13,7 @@ public class StartUpInit {
 	@PostConstruct
 	public void init() {
 		CodeSyncLogger.logInfo("INIT CALLED");
-		setEnableLogs("N");
+//		setEnableLogs("N");
 	}
 
 	@PreDestroy
