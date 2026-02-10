@@ -270,7 +270,9 @@
         </div>
 
         <div class="right">
-            <button class="share-btn" id="share-btn">🔗 Share URL</button>
+            <button class="share-btn" id="clear-text-btn">🧹 Clear</button>
+            <button class="share-btn" id="share-btn">🔗 Share</button>
+            <button class="share-btn" id="copy-text-btn">📋 Copy Text</button>
             <div class="loader" id="loader"></div>
             <div class="toggle" id="mode-toggle"></div>
         </div>
@@ -345,9 +347,14 @@ editor.addEventListener("input", function () {
 <script>
 /* -------------------- NORMAL POLLING -------------------- */
 let pollInProgress = false;
+let pollTimer = null;
 
 function poll() {
-    if (userTyping || pollInProgress) return setTimeout(poll, 3000);
+	 if (userTyping || pollInProgress) {
+	        pollTimer = setTimeout(poll, 3000);
+	        return;
+	  }
+	 
 
     pollInProgress = true;
     showLoader();
@@ -356,7 +363,7 @@ function poll() {
         .then(r => { if (!r.ok) throw new Error(r.status); return r.text(); })
         .then(t => { if (t !== lastContent) { editor.value = t; lastContent = t; } })
         .catch(err => console.error("Polling error:", err))
-        .finally(() => { pollInProgress = false; hideLoader(); setTimeout(poll, 3000); });
+        .finally(() => { pollInProgress = false; hideLoader(); pollTimer = setTimeout(poll, 3000); });
 }
 poll();
 </script>
@@ -414,7 +421,7 @@ pollWithTimeout();
                 }
 
                 shareBtn.textContent = "✅ Copied!";
-                setTimeout(() => shareBtn.textContent = "🔗 Share URL", 1500);
+                setTimeout(() => shareBtn.textContent = "🔗 Share", 1500);
 
             } catch (err) {
                 console.error("Clipboard failed:", err);
@@ -422,6 +429,80 @@ pollWithTimeout();
             }
         });
     </script>
+
+<script>
+/* -------------------- Copy Editor Text -------------------- */
+const copyTextBtn = document.getElementById("copy-text-btn");
+
+copyTextBtn.addEventListener("click", async () => {
+    const textToCopy = editor.value;
+
+    if (!textToCopy) {
+        alert("Nothing to copy!");
+        return;
+    }
+
+    try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(textToCopy);
+        } else {
+            copyTextFallback(textToCopy);
+        }
+
+        copyTextBtn.textContent = "✅ Copied!";
+        setTimeout(() => copyTextBtn.textContent = "📋 Copy Text", 1500);
+
+    } catch (err) {
+        console.error("Clipboard failed:", err);
+        alert("Copy failed. Please copy manually.");
+    }
+});
+</script>
+
+<script>
+/* -------------------- Clear Editor Text -------------------- */
+const clearBtn = document.getElementById("clear-text-btn");
+
+clearBtn.addEventListener("click", async () => {
+    if (!editor.value.trim()) return;
+
+    const confirmClear = confirm("Are you sure you want to clear the text?");
+    if (!confirmClear) return;
+
+    try {
+        // 🔥 THIS IS THE MAGIC LINE
+        clearTimeout(pollTimer);
+        
+    	pollInProgress = true;
+        showLoader();
+
+        // 2️⃣ Save EMPTY content to server
+        await fetch(apiUrl, {
+            method: "POST",
+            headers: { "Content-Type": "text/plain" },
+            body: ""
+        });
+        
+        // 1️⃣ Clear locally
+        editor.value = "";
+
+        // 3️⃣ Update memory so poll won't restore
+        lastContent = "";
+
+        clearBtn.textContent = "✅ Cleared!";
+        setTimeout(() => clearBtn.textContent = "🧹 Clear", 1500);
+
+    } catch (err) {
+        console.error("Clear failed:", err);
+        alert("Failed to clear on server.");
+    } finally {
+        hideLoader();
+        pollInProgress = false;
+        poll();   // restart fresh polling cycle
+    }
+});
+</script>
+
 
 
 
