@@ -7,11 +7,13 @@
 </p>
 
 A simple **Codeshare.io–like** application built with **Spring Boot 2.5.5** and **Java 8**.  
-It allows users to share text in real time using a URL-based key — no authentication required.
+It allows users to share text in real time using a URL-based key — no authentication required, with advanced **security, logging, and auditing** features added.
 
 ---
 
 ## 🚀 Features
+
+### Core Features
 
 - URL-based shared rooms
 
@@ -34,109 +36,39 @@ Example:
 - Auto-create share if it does not exist
 - Auto-save with debounce
 - Near real-time updates using polling
-- Persistent storage using JPA (MySQL / MSSQL)
-- No authentication (MVP)
+- Persistent storage using JPA (Oracle / MSSQL / MySQL)
 - WAR packaging (deployable on external servers)
+- Copy text and Clear text buttons for convenience
 
----
+### Security Features
 
-## 🛠 Tech Stack
+- **JWT-based Authentication EntryPoint**  
+  Returns 401 Unauthorized HTML page for invalid access attempts.
+- **Rate Limiting using Bucket4j**  
+  Limits requests per client IP with configurable capacity and refill rate.
+- **IP Blocking**  
+  Block malicious IPs automatically based on configuration (configurable from `application.properties` file).
+- **Client IP Identification**  
+  Logs IP, browser, OS, device type, and client type for every request.
+- **Audit Logging of Every Request**  
+  Stores details in `CodeSyncAudit` table: method, URI, query string, IP, forwarded IPs, content length, body, duration, and client details.
+- **Client Name Lookup**  
+  Maps known IP addresses to names, logs names instead of IPs for easier audit.
+- **Global Exception Handling**  
+  All exceptions during filtering, key validation, or request handling are captured and logged.
+- **Share Key Validation**  
+  Validates share key length (max 100 characters), both strict (exception) and lenient (logs warning).
 
-| Layer           | Technology        |
-| --------------- | ----------------- |
-| Backend         | Spring Boot 2.5.5 |
-| Language        | Java 8            |
-| Build Tool      | Maven             |
-| Persistence     | Spring Data JPA   |
-| Database        | ORACLE / MSSQL    |
-| Frontend        | HTML + JavaScript |
-| Template Engine | Thymeleaf         |
-| Packaging       | WAR               |
+⚠️ **NOTE: Do not use as-is for sensitive data** ⚠️
 
----
+### Frontend Features
 
-## 📂 Project Structure
-
-```
-
-src/main/java
-|
-├── com.ag.CodeSync
-│   ├── ServletInitializer.java
-│   └── CodeSyncApplication.java
-├── com.ag.controller
-│   ├── CodeSyncController.java
-│   └── SharePageController.java
-├── com.ag.service
-│   └── CodeSyncService.java
-├── com.ag.repository
-│   └── CodeSyncRepository.java
-├── com.ag.entity
-    └── CodeSync.java
-
-src/main/resources
-├── templates
-│   └── share.html
-└── application.properties
-
-```
-
----
-
-## 🗄 Database Schema
-
-### Table: `CODE_SHARE`
-
-| Column     | Type                | Description    |
-| ---------- | ------------------- | -------------- |
-| id         | BIGINT              | Sequence       |
-| share_key  | VARCHAR(100) UNIQUE | URL identifier |
-| content    | VARCHAR(MAX)        | Shared text    |
-| created_at | DATETIME            | Created time   |
-| updated_at | DATETIME            | Last update    |
-
----
-
-## 🔗 API Endpoints
-
-### Fetch or Create Share
-
-```
-
-GET /api/share/{key}
-
-```
-
-- Returns existing content
-- Creates a new share if it does not exist
-
----
-
-### Update Share Content
-
-```
-
-PUT /api/share/{key}
-
-```
-
-**Request Body**
-
-```
-
-text/plain
-
-```
-
----
-
-### Delete Share
-
-```
-
-DELETE /api/share/{key}
-
-```
+- Simple HTML/CSS/JS frontend with:
+  - Share URL button
+  - Copy text button
+  - Clear text button
+- Real-time polling for updates every 3 seconds
+- Responsive textarea for editing
 
 ---
 
@@ -152,9 +84,9 @@ DELETE /api/share/{key}
 
 Example:
 
-[http://localhost:8081/codesync/share/umair](http://localhost:8081/codesync/share/umair)
+[http://172.191.1.223:8081/codesync/share/umair](http://172.191.1.223:8081/codesync/share/umair)
 
-All users opening the same URL will see and edit the same content.
+All users opening the same URL will see and edit the same content in real-time.
 
 ---
 
@@ -163,7 +95,7 @@ All users opening the same URL will see and edit the same content.
 This MVP uses **polling**:
 
 - Editor auto-saves after typing stops (500ms debounce)
-- Browser polls backend every 2 seconds
+- Browser polls backend every 3 seconds
 - If content changes, editor updates automatically
 
 ✅ Simple  
@@ -172,15 +104,107 @@ This MVP uses **polling**:
 
 ---
 
-## 🧠 How This Mimics Codeshare.io
+## 🛡 Security / Backend Protection
 
-| Codeshare.io    | This Project   |
-| --------------- | -------------- |
-| URL-based rooms | `/share/{key}` |
-| Shared editor   | HTML textarea  |
-| Auto-save       | Debounced PUT  |
-| Live updates    | Polling        |
-| No login        | Public access  |
+### Rate Limiting
+
+- Each client IP has a token bucket
+- Configurable `capacity`, `refill amount`, `refill interval`
+- Excess requests return HTTP `429 Too Many Requests`
+
+### IP Blocking
+
+- Predefined IPs blocked via `security.blocked-ips` property
+- Requests from blocked IPs return HTTP `403 Forbidden`
+
+### Authentication EntryPoint
+
+- Unauthenticated access triggers `JwtAuthenticationEntryPoint`
+- Responds with styled HTML page explaining proper usage of share URLs
+
+### Audit Logging
+
+Each request logs:
+
+- HTTP method, URI, query string
+- Client IP, forwarded IPs, real IP
+- Browser info, OS, device type, client type
+- Request body and content size
+- Duration of request processing
+
+Example log:
+
+```
+
+SECURITY FILTER | GET /share/umair | IP=172.191.1.223 | browserInfo= os=Linux | browser=Chrome | device=Desktop | clientType=Browser | Lang=en-US,en;q=0.9 | Ref=null | Status=200 | Time=12ms | content size: 250 | Body=...
+
+```
+
+### Client IP Name Mapping
+
+- Known client IPs are mapped to names
+- Logs show client name instead of raw IP if available
+- Dynamically updated when new IPs are added in DB
+
+### Logging Control
+
+- Enable or disable logging globally using `StartUpInit.enableLogs`
+- Used to mute verbose security/audit logs in certain deployments
+
+### Share Key Validation
+
+- Validates key length before accessing a share
+- Prevents long or malformed keys from causing errors
+- Can log warning or throw exception depending on method used
+
+---
+
+## 🛠 Tech Stack
+
+| Layer           | Technology             |
+| --------------- | ---------------------- |
+| Backend         | Spring Boot 2.5.5      |
+| Language        | Java 8                 |
+| Build Tool      | Maven                  |
+| Persistence     | Spring Data JPA        |
+| Database        | ORACLE / MSSQL / MySQL |
+| Frontend        | HTML + JavaScript      |
+| Template Engine | Thymeleaf              |
+| Packaging       | WAR                    |
+
+---
+
+## 🔗 API Endpoints
+
+### Fetch or Create Share
+
+```
+
+GET /share/{key}
+
+```
+
+- Returns existing content
+- Creates a new share if it does not exist
+
+### Update Share Content
+
+```
+
+POST /api/share/{key}
+
+```
+
+**Request Body**
+
+```
+
+text/plain
+
+```
+
+- Updates the shared content
+- Triggers audit logging
 
 ---
 
@@ -190,7 +214,7 @@ This MVP uses **polling**:
 
 - Java 8
 - Maven
-- MySQL or MSSQL
+- Oracle / MSSQL / MySQL
 - Application server (Tomcat / WildFly / GlassFish)
 
 ### Build
@@ -210,59 +234,21 @@ mvn clean package
 
 ## ⚙ Configuration
 
-Update database configuration in: application.properties
+Update database configuration in `application.properties`
 
-````
-
-Example:
 ```properties
-spring.datasource.url=jdbc:sqlserver://localhost:databaseName=db
-spring.datasource.username=secret
-spring.datasource.password=secret
 
-spring.jpa.hibernate.ddl-auto=update
-spring.jpa.show-sql=true
+spring.datasource.url=jdbc:sqlserver://localhost;databaseName=yourdb
+spring.datasource.username=youruser
+spring.datasource.password=yourpassword
 
-````
+# Security
+security.blocked-ips=172.191.1.100,172.191.1.101
+security.rate.limit.capacity=50
+security.rate.limit.refill.seconds=60
+security.rate.limit.to.refill=10
 
----
-
-## 🔐 Security
-
-- No authentication (by design for MVP)
-- Public URLs
-- No access restrictions
-
-⚠️ **Do not use as-is for sensitive data**
-
----
-
-## 🔮 Future Enhancements
-
-- WebSocket-based real-time updates
-- Syntax highlighting
-- Read-only mode
-- Share expiration (TTL)
-- Version history
-- Authentication & permissions
-
----
-
-## 📚 Learning Purpose
-
-This project is intentionally kept:
-
-- Simple
-- Easy to understand
-- Layered properly
-- Java 8 compatible
-
-It is ideal for:
-
-- Spring Boot beginners
-- Interview preparation
-- Internal tools
-- MVP prototypes
+```
 
 ---
 
@@ -270,6 +256,10 @@ It is ideal for:
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
-## Authors / Developers
+---
+
+## 👨‍💻 Authors / Developers
 
 - [![Umair Ali Bhutto](https://img.shields.io/badge/%40author-Umair_Ali_Bhutto-green?style=plastic&logo=github&logoColor=white)](https://github.com/umair-ali-bhutto/)
+
+---

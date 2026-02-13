@@ -6,10 +6,18 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ---
 
+## [V-1.1.3] 13-FEB-2026
+
+### Changed
+
+- Updated Readme.md File
+
+---
 
 ## [V-1.1.2] 13-FEB-2026
 
 ### Added
+
 - Added ChangeLog File
 
 ---
@@ -17,6 +25,7 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 ## [V-1.1.1] 13-FEB-2026
 
 ### Added
+
 - Added Client IP name fetching from known clients IP Addresses
 
 ---
@@ -24,6 +33,7 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 ## [V-1.1.0] 13-FEB-2026
 
 ### Added
+
 - Added Security to endpoints and removed delete share code
 
 ---
@@ -31,14 +41,15 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 ## [V-1.0.9] 13-FEB-2026
 
 ### Changed
+
 - Updated version in html
 
 ---
 
-
 ## [V-1.0.8] 13-FEB-2026
 
 ### Fixed
+
 - Security patch
 
 ---
@@ -46,6 +57,7 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 ## [V-1.0.7] 10-FEB-2026
 
 ### Added
+
 - Working on File Sharing Feature
 
 ---
@@ -53,6 +65,7 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 ## [V-1.0.6] 10-FEB-2026
 
 ### Added
+
 - Added copy and clear text button and minor fixes
 
 ---
@@ -60,6 +73,7 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 ## [V-1.0.5] 04-FEB-2026
 
 ### Added
+
 - User agent and browser auditing with logs and DB
 
 ---
@@ -67,6 +81,7 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 ## [V-1.0.4] 03-FEB-2026
 
 ### Fixed
+
 - Body length too large printing log issue fixed
 
 ---
@@ -74,6 +89,7 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 ## [V-1.0.3] 29-JAN-2026
 
 ### Added
+
 - Bucket4j for rate limiting
 - Audit log
 - Minor bug fixes
@@ -83,6 +99,7 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 ## [V-1.0.2] 26-JAN-2026
 
 ### Added
+
 - Favicon and Open Graph metadata
 
 ---
@@ -90,6 +107,7 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 ## [V-1.0.1] 23-JAN-2026
 
 ### Changed
+
 - Deployment context root updated
 - More features added and bug fixes
 
@@ -98,8 +116,9 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 ## [V-1.0.0] 22-JAN-2026
 
 ### Initial commit
+
 - Project initialized
 
 ### Added
-- Added code
 
+- Added code
