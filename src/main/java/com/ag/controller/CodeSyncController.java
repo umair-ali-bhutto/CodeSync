@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.ag.config.CodeSyncUtil;
 import com.ag.entity.CodeSync;
 import com.ag.service.CodeSyncService;
 
@@ -32,7 +33,7 @@ public class CodeSyncController {
 	 */
 	@GetMapping("/{key}")
 	public ResponseEntity<String> get(@PathVariable String key) {
-//		CodeSyncLogger.logInfo("GET share: " + key);
+		CodeSyncUtil.validateKey(key);
 		CodeSync share = service.getOrCreate(key);
 		return ResponseEntity.ok(share.getContent());
 	}
@@ -45,26 +46,13 @@ public class CodeSyncController {
 	 */
 	@PostMapping("/{key}")
 	public ResponseEntity<Void> saveOrUpdate(@PathVariable String key, @RequestBody(required = false) String content) {
-
+		CodeSyncUtil.validateKey(key);
 		if (content == null) {
 			content = "";
 		}
 
-//		CodeSyncLogger.logInfo("POST share: " + key + ", size=" + content.length());
 		service.update(key, content);
 		return ResponseEntity.ok().build();
 	}
-
-	/**
-	 * Deletes a share.
-	 *
-	 * @param key share key
-	 */
-//	@DeleteMapping("/{key}")
-//	public ResponseEntity<Void> delete(@PathVariable String key) {
-//		CodeSyncLogger.logInfo("DELETE share: " + key);
-//		service.delete(key);
-//		return ResponseEntity.noContent().build();
-//	}
 
 }

@@ -23,7 +23,7 @@ public class CodeSync {
 	@SequenceGenerator(name = "CODE_SYNC_SEQ", sequenceName = "CODE_SYNC_SEQ", allocationSize = 1)
 	private Long id;
 
-	@Column(name = "SHARE_KEY", nullable = false, length = 100)
+	@Column(name = "SHARE_KEY", nullable = false, length = 100, unique = true)
 	private String shareKey;
 
 	@Lob

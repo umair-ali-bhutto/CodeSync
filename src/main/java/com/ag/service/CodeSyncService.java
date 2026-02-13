@@ -6,7 +6,6 @@ import org.springframework.stereotype.Service;
 
 import com.ag.config.CodeSyncLogger;
 import com.ag.entity.CodeSync;
-import com.ag.exception.ShareNotFoundException;
 import com.ag.repository.CodeSyncRepository;
 
 /**
@@ -48,20 +47,7 @@ public class CodeSyncService {
 	public CodeSync update(String shareKey, String content) {
 		CodeSync share = getOrCreate(shareKey);
 		share.setContent(content);
-//        CodeSyncLogger.logInfo("Updated content for key: " + shareKey);
 		return repository.save(share);
 	}
 
-	/**
-	 * Deletes a share by key.
-	 *
-	 * @param shareKey unique share identifier
-	 */
-	public void delete(String shareKey) {
-		if (!repository.findByShareKey(shareKey).isPresent()) {
-			throw new ShareNotFoundException(shareKey);
-		}
-		CodeSyncLogger.logInfo("Deleting share: " + shareKey);
-		repository.deleteByShareKey(shareKey);
-	}
 }

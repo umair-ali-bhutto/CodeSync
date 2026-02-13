@@ -45,10 +45,10 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 				.authorizeRequests()
 
 				// PUBLIC: API
-				.antMatchers("/api/share/**").permitAll()
+				.antMatchers("/api/share/*").permitAll()
 
 				// PUBLIC: only /share/{key}
-				.antMatchers("/share/**").permitAll()
+				.antMatchers("/share/*").permitAll()
 
 				.antMatchers("/logsService").permitAll()
 
@@ -82,6 +82,23 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 					response.getWriter().write("Sorry IP blocked");
 					logAndAudit(wrappedRequest, response, clientIp, start);
 					return;
+				}
+
+				String uri = request.getRequestURI();
+
+				if (uri.startsWith("/codesync/share/")) {
+
+					String key = uri.substring(uri.lastIndexOf("/") + 1);
+
+					// invalid cases
+					if (key.isEmpty() || key.length() > 100 || key.contains("/")) {
+						// Trick Spring Security into calling JwtAuthenticationEntryPoint
+						jwtAuthenticationEntryPoint.commence(request, response,
+								new org.springframework.security.authentication.BadCredentialsException(
+										"Invalid Share Key"));
+						logAndAudit(wrappedRequest, response, clientIp, start);
+						return;
+					}
 				}
 
 				// ⏱ RATE LIMIT
@@ -142,7 +159,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
 		CodeSyncAudit log = new CodeSyncAudit();
 		log.setHttpMethod(method);
-		log.setUri(uri);
+		log.setUri(CodeSyncUtil.validateKeyWithoutException(uri));
 		log.setQueryString(query);
 		log.setClientIp(clientIp);
 		log.setStatusCode(response.getStatus());

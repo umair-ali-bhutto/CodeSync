@@ -19,6 +19,12 @@ public class GlobalExceptionHandler {
 		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
 	}
 
+	@ExceptionHandler(IllegalArgumentException.class)
+	public ResponseEntity<String> handleBadKey(IllegalArgumentException ex) {
+		CodeSyncLogger.logError(ex.getMessage(), ex);
+		return ResponseEntity.badRequest().body("Invalid Share Key");
+	}
+
 	@ExceptionHandler(Exception.class)
 	public ResponseEntity<String> handleGeneric(Exception ex) {
 		CodeSyncLogger.logError("Unhandled error", ex);

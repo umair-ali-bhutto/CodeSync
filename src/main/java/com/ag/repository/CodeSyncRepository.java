@@ -10,5 +10,4 @@ public interface CodeSyncRepository extends JpaRepository<CodeSync, Long> {
 
 	Optional<CodeSync> findByShareKey(String shareKey);
 
-	void deleteByShareKey(String shareKey);
 }
