@@ -18,6 +18,7 @@ import org.springframework.web.util.ContentCachingRequestWrapper;
 
 import com.ag.entity.CodeSyncAudit;
 import com.ag.service.CodeSyncAuditService;
+import com.ag.service.CodeSyncClientCache;
 
 import io.github.bucket4j.Bucket;
 
@@ -177,14 +178,17 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 		log.setSecFetchSiteModeDest(secFetchSite + " | " + secFetchMode + " | " + secFetchDest);
 		log.setSecChUaPlatformMobile(secChUa + " | " + secChUaPlatform + " | " + secChUaMobile);
 
-		codeSyncAuditService.saveSafely(log);
-
 		String bodyLog = (body.length() <= 50000) ? " | Body=" + body : " | Body too large not logging";
 
-		CodeSyncLogger.logInfo("SECURITY FILTER | " + method + " " + uri + (query != null ? "?" + query : "") + " | IP="
-				+ clientIp + " | browserInfo=" + browserInfo + " | Lang=" + language + " | Ref=" + referer
-				+ " | Status=" + response.getStatus() + " | Time=" + duration + "ms | content size: " + body.length()
-				+ "" + bodyLog);
+		String clientName = CodeSyncClientCache.getNameByIp(clientIp);
+
+		CodeSyncLogger.logInfo("SECURITY FILTER | " + method + " " + uri + (query != null ? "?" + query : "")
+				+ " | Client=" + clientName + " | IP=" + clientIp + " | browserInfo=" + browserInfo + " | Lang="
+				+ language + " | Ref=" + referer + " | Status=" + response.getStatus() + " | Time=" + duration
+				+ "ms | content size: " + body.length() + "" + bodyLog);
+
+		codeSyncAuditService.saveSafely(log);
+
 	}
 
 	/**
@@ -194,7 +198,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
 		// 1️⃣ X-Forwarded-For (may contain multiple IPs)
 		String xff = request.getHeader("X-Forwarded-For");
-		if (isValid(xff)) {
+		if (CodeSyncUtil.isIpValid(xff)) {
 			String ip = xff.split(",")[0].trim();
 			CodeSyncLogger.logInfo("Client IP from X-Forwarded-For: " + ip);
 			return ip;
@@ -202,14 +206,14 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
 		// 2️⃣ X-Real-IP (Nginx)
 		String xRealIp = request.getHeader("X-Real-IP");
-		if (isValid(xRealIp)) {
+		if (CodeSyncUtil.isIpValid(xRealIp)) {
 			CodeSyncLogger.logInfo("Client IP from X-Real-IP: " + xRealIp);
 			return xRealIp;
 		}
 
 		// 3️⃣ Forwarded (RFC 7239)
 		String forwarded = request.getHeader("Forwarded");
-		if (isValid(forwarded)) {
+		if (CodeSyncUtil.isIpValid(forwarded)) {
 			// Example: for=192.168.1.10;proto=https
 			for (String part : forwarded.split(";")) {
 				if (part.trim().startsWith("for=")) {
@@ -304,7 +308,4 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 		return " os=" + os + " | browser=" + browser + " | device=" + device + " | clientType=" + clientType;
 	}
 
-	private boolean isValid(String value) {
-		return value != null && !value.isEmpty() && !"unknown".equalsIgnoreCase(value);
-	}
 }
