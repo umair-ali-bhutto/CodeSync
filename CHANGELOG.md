@@ -6,11 +6,20 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ---
 
+## [V-1.1.5] 30-MAR-2026
+
+### Changed
+
+- Changed Some Texts on Share Page
+- Added method to show user HTTP call status in headers
+
+---
+
 ## [V-1.1.4] 30-MAR-2026
 
 ### Added
 
-- Added New Endpoint For Dashboard
+- Added New Endpoint For Dashboard to see various summary
 - Added CSV Download for Audit in Dashboard
 
 ---

@@ -178,7 +178,7 @@
             height: 100%;
             padding: 1rem;
             font-family: 'Courier New', monospace;
-            font-size: 14px;
+            font-size: 17px;
             border-radius: 10px;
             border: 1px solid #444;
             background-color: var(--editor-bg-light);
@@ -265,11 +265,13 @@
     <header role="banner">
         <div class="left">
             <div class="logo">Code Sync</div>
-            <div class="api-name" id="api-name">Welcome To Code Sharing Site --->>> URL Opened: /[[${shareKey}]]
+            <div class="api-name" id="api-name">URL Opened: /[[${shareKey}]]
             </div>
         </div>
 
         <div class="right">
+        <div id="status-display" style="margin-left:10px; font-weight:bold;"></div>
+        
             <button class="share-btn" id="clear-text-btn">🧹 Clear</button>
             <button class="share-btn" id="share-btn">🔗 Share</button>
             <button class="share-btn" id="copy-text-btn">📋 Copy Text</button>
@@ -309,6 +311,66 @@ const loader = document.getElementById('loader');
 function showLoader() { loader.classList.add('active'); }
 function hideLoader() { loader.classList.remove('active'); }
 
+
+/* -------------------- HTTP Status Display -------------------- */
+const statusDisplay = document.getElementById("status-display");
+
+// Configure messages and colors per HTTP status
+const statusConfig = {
+    200: { text: "✅ Success.", color: "green" },
+    400: { text: "⚠️ Bad Request", color: "orange" },
+    401: { text: "⚠️ Unauthorized", color: "orange" },
+    403: { text: "🚫 Forbidden", color: "red" },
+    404: { text: "❌ Not Found", color: "red" },
+    429: { text: "❌ Too Many Requests", color: "red" },
+    500: { text: "💥 Server Error o7", color: "darkred" },
+    0:   { text: "❌ Error", color: "red" } 
+};
+
+/**
+ * Show HTTP / network status with context
+ * @param {number|Error} statusOrError - HTTP status code or Error object
+ * @param {string} context - Optional: where this status came from ('load', 'poll', 'save', 'clear', etc.)
+ */
+function showStatus(statusOrError, context = "") {
+    const statusDisplay = document.getElementById("status-display");
+    let cfg;
+    
+    // HTTP Status codes
+    if (typeof statusOrError === "number") {
+        cfg = statusConfig[statusOrError] || { text: `Status: ${statusOrError}`, color: "blue" };
+    } 
+    else {
+        cfg = statusConfig[0]; // fallback
+    }
+
+    // Customize text based on context
+    let contextPrefix = "";
+    switch (context) {
+        case "load":
+            contextPrefix = "📥 Loaded: ";
+            break;
+        case "poll":
+            contextPrefix = "🔄 Poll: ";
+            break;
+        case "save":
+            contextPrefix = "💾 Saved: ";
+            break;
+        case "clear":
+            contextPrefix = "🧹 Cleared: ";
+            break;
+        default:
+            contextPrefix = "";
+    }
+
+    statusDisplay.textContent = contextPrefix + cfg.text;
+    statusDisplay.style.color = cfg.color;
+    
+    setTimeout(() => {
+       statusDisplay.textContent = "";
+    }, 800);
+}
+
 /* -------------------- Editor & Auto Save -------------------- */
 const editor = document.getElementById("editor");
 const shareKey = "[[${shareKey}]]";
@@ -321,12 +383,18 @@ let userTyping = false;
 /* Initial load */
 showLoader();
 fetch(apiUrl)
-    .then(r => r.text())
+    .then(r => {
+        showStatus(r.status, "load");  // show HTTP status here
+        return r.text();
+    })
     .then(t => {
         editor.value = t;
         lastContent = t;
     })
-    .catch(console.error)
+    .catch(err => { 
+        console.error(err);
+        showStatus(0, "load"); // network error
+    })
     .finally(hideLoader);
 
 /* Auto-save (debounced) */
@@ -340,9 +408,11 @@ editor.addEventListener("input", function () {
             method: "POST",
             headers: { "Content-Type": "text/plain" },
             body: editor.value
-        }).then(() => { lastContent = editor.value; })
-          .catch(err => console.error("Save failed:", err))
-          .finally(() => { userTyping = false; hideLoader(); });
+        })
+        .then(r => showStatus(r.status, "save"))
+        .then(() => { lastContent = editor.value; })
+        .catch(err => { console.error("Save failed:", err); showStatus(0, "save"); })
+        .finally(() => { userTyping = false; hideLoader(); });
     }, 1000);
 });
 </script>
@@ -363,42 +433,18 @@ function poll() {
     showLoader();
 
     fetch(apiUrl)
-        .then(r => { if (!r.ok) throw new Error(r.status); return r.text(); })
+    	.then(r => {
+        	showStatus(r.status, "poll");
+        	if (!r.ok) throw new Error(r.status);
+        	return r.text();
+    	})
         .then(t => { if (t !== lastContent) { editor.value = t; lastContent = t; } })
-        .catch(err => console.error("Polling error:", err))
+        .catch(err => { console.error("Polling error:", err); showStatus(0, "poll"); })
         .finally(() => { pollInProgress = false; hideLoader(); pollTimer = setTimeout(poll, 3000); });
 }
 poll();
 </script>
  
- <!-- 
- <script>
-/* -------------------- POLLING WITH TIMEOUT -------------------- */
-function fetchWithTimeout(url, options = {}, timeout = 8000) {
-    const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), timeout);
-    return fetch(url, { ...options, signal: controller.signal })
-        .finally(() => clearTimeout(id));
-}
-
-let pollInProgressTimeout = false;
-
-function pollWithTimeout() {
-    if (userTyping || pollInProgressTimeout) return setTimeout(pollWithTimeout, 3000);
-
-    pollInProgressTimeout = true;
-
-    fetchWithTimeout(apiUrl)
-        .then(r => r.text())
-        .then(t => { if (t !== lastContent) { editor.value = t; lastContent = t; } })
-        .catch(err => console.warn("Poll failed:", err))
-        .finally(() => { pollInProgressTimeout = false; setTimeout(pollWithTimeout, 3000); });
-}
-pollWithTimeout();
-</script>
- -->
- 
-
     <script>
         /* -------------------- Share URL -------------------- */
         const shareBtn = document.getElementById("share-btn");
@@ -484,7 +530,10 @@ clearBtn.addEventListener("click", async () => {
             method: "POST",
             headers: { "Content-Type": "text/plain" },
             body: ""
-        });
+        })
+        .then(r => showStatus(r.status, "clear"))
+        .catch(err => { console.error("Clear failed:", err); showStatus(0, "clear"); });
+        
         
         // 1️⃣ Clear locally
         editor.value = "";
