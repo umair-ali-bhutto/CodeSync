@@ -258,6 +258,11 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 ---
 
+## Changelog
+See [CHANGELOG](CHANGELOG.md) for the full list of updates and fixes.
+
+---
+
 ## 👨‍💻 Authors / Developers
 
 - [![Umair Ali Bhutto](https://img.shields.io/badge/%40author-Umair_Ali_Bhutto-green?style=plastic&logo=github&logoColor=white)](https://github.com/umair-ali-bhutto/)

@@ -6,6 +6,16 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ---
 
+## [V-1.1.4] 30-MAR-2026
+
+### Added
+
+- Added New Endpoint For Dashboard
+- Added CSV Download for Audit in Dashboard
+
+---
+
+
 ## [V-1.1.3] 13-FEB-2026
 
 ### Changed

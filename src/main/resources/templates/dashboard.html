@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="https://umair-ali-bhutto.github.io/assets/CodePenIcon/logo.png">
+<meta name="author" content="Umair Ali Bhutto">
+<title>CodeSync | Premium Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+/* --- Advanced Variables --- */
+:root {
+    --bg-dark: #080a0f;
+    --card-bg: rgba(30, 41, 59, 0.6);
+    --accent-blue: #38bdf8;
+    --accent-purple: #818cf8;
+    --text-main: #f1f5f9;
+    --text-dim: #94a3b8;
+    --glass-border: rgba(255, 255, 255, 0.08);
+}
+
+/* --- Global Reset & Animations --- */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+body {
+    margin: 0;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background: radial-gradient(circle at 0% 0%, #1e1b4b 0%, #080a0f 50%);
+    background-attachment: fixed;
+    color: var(--text-main);
+    line-height: 1.6;
+    min-height: 100vh;
+    overflow-x: hidden; 
+}
+
+/* --- Loader Overlay --- */
+#loader-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(8, 10, 15, 0.8);
+    backdrop-filter: blur(8px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    transition: opacity 0.4s ease;
+}
+
+.loader {
+    width: 50px;
+    height: 50px;
+    border: 3px solid rgba(56, 189, 248, 0.1);
+    border-top-color: var(--accent-blue);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.container {
+    max-width: 1400px;
+    margin: auto;
+    padding: 40px 20px;
+    animation: fadeIn 0.6s ease-out;
+}
+
+/* --- Header Section --- */
+.header-area {
+    margin-bottom: 40px;
+    padding-left: 20px;
+    border-left: 4px solid var(--accent-blue);
+}
+
+h1 {
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin: 0;
+    background: linear-gradient(to right, #38bdf8, #818cf8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* --- Tiles --- */
+.tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 25px;
+    margin-bottom: 40px;
+}
+
+.tile {
+    background: var(--card-bg);
+    backdrop-filter: blur(16px);
+    padding: 30px;
+    border-radius: 24px;
+    border: 1px solid var(--glass-border);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.tile:hover {
+    transform: translateY(-10px);
+    background: rgba(30, 41, 59, 0.85);
+    border-color: var(--accent-blue);
+    box-shadow: 0 15px 35px rgba(56, 189, 248, 0.2);
+}
+
+.tile h2 {
+    font-size: 2.8rem;
+    margin: 0;
+    font-weight: 700;
+}
+
+.tile p {
+    margin: 8px 0 0;
+    color: var(--text-dim);
+    font-weight: 600;
+    font-size: 0.8rem;
+    letter-spacing: 0.5px;
+}
+
+/* --- Cards & Tables --- */
+.card {
+    background: var(--card-bg);
+    backdrop-filter: blur(16px);
+    border-radius: 28px;
+    padding: 35px;
+    margin-bottom: 35px;
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    overflow: hidden; /* Keeps the card corners clean */
+}
+
+h2.table-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* --- HIDE SCROLLBARS BUT ALLOW SCROLLING --- */
+.table-wrapper {
+    overflow-x: auto;
+    border-radius: 16px;
+    padding: 5px; 
+    margin: -5px;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+}
+
+.table-wrapper::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+}
+
+table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 10px;
+}
+
+th {
+    padding: 15px 20px;
+    color: var(--accent-blue);
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    letter-spacing: 1.5px;
+    text-align: left;
+}
+
+tbody tr {
+    background: rgba(255, 255, 255, 0.03);
+    transition: all 0.3s ease;
+}
+
+tbody tr:hover {
+    background: rgba(56, 189, 248, 0.12);
+    transform: scale(1.005);
+}
+
+td {
+    padding: 18px 20px;
+    font-size: 0.9rem;
+    white-space: nowrap;
+}
+
+td:first-child { border-radius: 12px 0 0 12px; }
+td:last-child { border-radius: 0 12px 12px 0; }
+
+/* --- Top Clients Alignment --- */
+.top-clients-table {
+    border-collapse: collapse;
+    width: 100%;
+}
+.top-clients-table th, .top-clients-table td {
+    border-bottom: 10px solid transparent;
+    background-clip: padding-box;
+}
+
+/* --- Status Badges --- */
+.status-badge {
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-weight: 800;
+    font-size: 0.75rem;
+}
+.status-200 { background: rgba(74, 222, 128, 0.15); color: #4ade80; }
+.status-400, .status-401, .status-404 { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
+.status-429 { background: rgba(167, 139, 250, 0.15); color: #a78bfa; }
+.status-500 { background: rgba(248, 113, 113, 0.15); color: #f87171; }
+.status-default { background: rgba(255, 255, 255, 0.1); color: var(--text-dim); }
+
+.browser-info {
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text-dim);
+    font-size: 0.8rem;
+}
+
+/* --- Buttons --- */
+.btn {
+    background: linear-gradient(135deg, #2563eb, #3b82f6);
+    color: white;
+    padding: 10px 20px;
+    text-decoration: none;
+    border-radius: 14px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: 0.3s;
+    border: none;
+    cursor: pointer;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 15px rgba(37, 99, 235, 0.4);
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    color: var(--text-main);
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--accent-blue);
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 30px;
+}
+
+.pagination a {
+    padding: 10px 20px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.05);
+    color: var(--text-main);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+@media (max-width: 768px) {
+    .container { padding: 20px; }
+    h1 { font-size: 1.8rem; }
+}
+</style>
+</head>
+<body>
+
+<div id="loader-overlay">
+    <div class="loader"></div>
+</div>
+
+<div class="container">
+    <header class="header-area">
+        <h1>🚀 CodeSync Analytics</h1>
+        <p style="color: var(--text-dim);">Live System Intelligence & Traffic Monitoring</p>
+    </header>
+
+    <div class="tiles">
+        <div class="tile">
+            <h2 th:text="${summary.todayRequests}">0</h2>
+            <p>📈 Today's Volume</p>
+        </div>
+        <div class="tile">
+            <h2 th:text="${summary.yesterdayRequests}">0</h2>
+            <p>🕒 Yesterday's Volume</p>
+        </div>
+        <div class="tile" style="border-bottom: 3px solid var(--accent-blue);">
+            <h2 th:text="${summary.activeClientsToday}" style="color: var(--accent-blue);">0</h2>
+            <p>👥 Active Clients (24h)</p>
+        </div>
+        <div class="tile">
+            <h2 th:text="${summary.activeClientsYesterday}">0</h2>
+            <p>🔗 Active Clients (Yesterday)</p>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2 class="table-title">🔥 Top Performance Clients</h2>
+        <div class="table-wrapper">
+            <table class="top-clients-table">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>IP Address</th>
+                        <th>Client</th>
+                        <th style="text-align: right;">Activity</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="row, iterStat : ${topClients}">
+                        <td style="font-weight: 800; color: var(--text-dim);" th:text="'#' + ${iterStat.count}">#1</td>
+                        <td style="color: var(--accent-blue); font-family: monospace;" th:text="${row.ip}">127.0.0.1</td>
+                        <td th:text="${row.name ?: 'Anonymous Node'}">Main Server</td>
+                        <td style="text-align: right;">
+                            <span style="background: rgba(255,255,255,0.05); padding: 5px 12px; border-radius: 20px;" th:text="${row.total}">0</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-wrap: wrap; gap: 15px;">
+            <h2 class="table-title" style="margin: 0;">⚡ Recent Audit Logs</h2>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-secondary" onclick="refreshData()">
+                    <span>🔄</span> Refresh
+                </button>
+                <a class="btn" href="/codesync/admin/dashboard/download">
+                    <span>📥</span> Export
+                </a>
+            </div>
+        </div>
+        
+        <div class="table-wrapper">
+            <table id="auditTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Timestamp</th>
+                        <th>IP</th>
+                        <th>Method</th>
+                        <th>Route</th>
+                        <th>Status</th>
+                        <th>Speed</th>
+                        <th>Size</th>
+                        <th>Browser</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="a, iterStat : ${todayAudits}">
+                        <td th:text="${iterStat.count}">1</td>
+                        <td th:text="${a.createdAt}" style="font-size: 0.8rem; color: var(--text-dim);">12:00:00</td>
+                        <td th:text="${a.clientIp}" style="font-weight: 600;">192.168.1.1</td>
+                        <td><span style="font-weight: 800; color: var(--accent-purple);" th:text="${a.httpMethod}">GET</span></td>
+                        <td th:text="${a.uri}" style="font-family: monospace; font-size: 0.85rem;">/api/auth</td>
+                        <td>
+                            <span th:text="${a.statusCode}" 
+                                  th:class="'status-badge ' + (
+                                    ${a.statusCode == 200} ? 'status-200' : (
+                                    ${a.statusCode == 400 || a.statusCode == 401 || a.statusCode == 404} ? 'status-404' : (
+                                    ${a.statusCode == 429} ? 'status-429' : (
+                                    ${a.statusCode == 500} ? 'status-500' : 'status-default'))))">
+                                200
+                            </span>
+                        </td>
+                        <td th:text="${a.durationMs + ' ms'}" style="color: #fbbf24; font-weight: 600;">45ms</td>
+                        <td th:text="${a.contentSize}">0 KB</td>
+                        <td class="browser-info" th:title="${a.browserInfo}" th:text="${a.browserInfo}">Chrome/120</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="pagination">
+            <a th:href="@{/admin/dashboard(page=${currentPage - 1})}" th:if="${currentPage > 0}">⬅ Prev</a>
+            <a th:href="@{/admin/dashboard(page=${currentPage + 1})}">Next ➡</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    window.addEventListener('load', function() {
+        const loader = document.getElementById('loader-overlay');
+        loader.style.opacity = '0';
+        setTimeout(() => {
+            loader.style.display = 'none';
+        }, 400);
+    });
+
+    function refreshData() {
+        const loader = document.getElementById('loader-overlay');
+        loader.style.display = 'flex';
+        loader.style.opacity = '1';
+        window.location.reload();
+    }
+</script>
+
+</body>
+</html>

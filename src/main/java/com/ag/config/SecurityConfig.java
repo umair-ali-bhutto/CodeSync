@@ -53,6 +53,11 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
 				.antMatchers("/logsService").permitAll()
 
+				// For Admin Dashboard
+				.antMatchers("/admin/dashboard").permitAll()
+
+				.antMatchers("/admin/dashboard/download").permitAll()
+
 				// EVERYTHING ELSE
 				.anyRequest().authenticated()
 
