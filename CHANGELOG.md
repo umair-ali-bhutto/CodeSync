@@ -6,6 +6,14 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ---
 
+## [V-1.1.6] 8-APR-2026
+
+### Changed
+
+- Fixed Dependabot Alert For JSON library
+
+---
+
 ## [V-1.1.5] 30-MAR-2026
 
 ### Changed
