@@ -13,6 +13,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.util.ContentCachingRequestWrapper;
 
@@ -38,12 +39,8 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 	@Override
 	protected void configure(HttpSecurity http) throws Exception {
 
-		http.addFilterBefore(requestLoggingFilter(),
-				org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class)
-
-				.csrf().disable()
-
-				.authorizeRequests()
+		http.addFilterBefore(requestLoggingFilter(), UsernamePasswordAuthenticationFilter.class).csrf()
+				.ignoringAntMatchers("/api/**", "/logsService").and().authorizeRequests()
 
 				// PUBLIC: API
 				.antMatchers("/api/share/*").permitAll()
@@ -51,19 +48,17 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 				// PUBLIC: only /share/{key}
 				.antMatchers("/share/*").permitAll()
 
+				// For Logs
 				.antMatchers("/logsService").permitAll()
 
 				// For Admin Dashboard
-				.antMatchers("/admin/dashboard").permitAll()
-
-				.antMatchers("/admin/dashboard/download").permitAll()
+				.antMatchers("/admin/dashboard", "/admin/dashboard/download").permitAll()
 
 				// EVERYTHING ELSE
-				.anyRequest().authenticated()
+				.anyRequest().authenticated().and().exceptionHandling()
+				.authenticationEntryPoint(jwtAuthenticationEntryPoint).and().sessionManagement()
+				.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED);
 
-				.and().exceptionHandling().authenticationEntryPoint(jwtAuthenticationEntryPoint)
-
-				.and().sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
 	}
 
 	/**
