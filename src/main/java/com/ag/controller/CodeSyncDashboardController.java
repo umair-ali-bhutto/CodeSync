@@ -31,6 +31,37 @@ public class CodeSyncDashboardController {
 		this.dashboardService = dashboardService;
 	}
 
+	// TODO: 
+	// Add link to error reporting or new feature suggestions in main share page 
+	// add username pass validation instead of ip (can keep both as well if necessary)
+	// add yesterdays top clients list as well in dashboard
+	// handle exception in dashboard to return custom html
+	// add virtualization so many rows work ok in html in dashboard and share
+	// add clear option as well after copy button pressed (ask user)
+	// add function to upload file as well 
+	// add currently active clients as well in dashboard
+	// add filter and search in dashboard
+	// add button in dashboard to see data if any against the row
+	// add function to see if another person is editing (optional not necesssary but i think will need to implement websockets or whatever is best based or maybe something better for live reload)
+	// add functionality to see who is currently connected to that share page
+	// add function of allowed and not allowed ips from dashboard instead of application properties 
+	// add a better dark mode and also store users preference against the share in browser cache for toggle
+	// CAN CONVERT TO JAVA 17 IF REQUIRED
+	// show release notes to user
+	// add proper error messages for api error code in html use library if required because basic not working properly
+	// make LOGS service api only allowed from local
+	// add download text file for share page also add option which format to download in text,md,java
+	// seperate html css js in seperate files
+	// ADD BANNER.txt READ BANNER.md
+	// Add manifest file
+	// if user is not active on page how to stop request sending i mean on different browser page
+	// add top 3 achievers of the month and previous month on dashboard
+	// add most opened share in dashboard
+	// stop ? marking of emojis
+	// also add button in dashboard to see what text uploaded 
+	// also add feature to download older data 
+	// please download data in excel in dashboard please
+	// show name with ip in below table in dashboard as well i only see ip
 	@GetMapping
 	public String dashboard(HttpServletRequest request, Model model, @RequestParam(defaultValue = "0") int page,
 			@RequestParam(defaultValue = "10") int size) {
@@ -45,6 +76,7 @@ public class CodeSyncDashboardController {
 		model.addAttribute("todayAudits", dashboardService.getTodayAudits(page, size));
 		model.addAttribute("topClients", dashboardService.getTopClientsToday());
 		model.addAttribute("currentPage", page);
+		model.addAttribute("pageSize", size);
 
 		return "dashboard";
 	}

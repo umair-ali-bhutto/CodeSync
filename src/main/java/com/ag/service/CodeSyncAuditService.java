@@ -24,8 +24,8 @@ public class CodeSyncAuditService {
 	public void saveSafely(CodeSyncAudit log) {
 		try {
 			repository.save(log);
-		} catch (Exception ignored) {
-			CodeSyncLogger.logError(getClass(), "AUDIT EXCEPTION", ignored);
+		} catch (Exception e) {
+			CodeSyncLogger.logError(getClass(), "AUDIT EXCEPTION", e);
 		}
 	}
 }

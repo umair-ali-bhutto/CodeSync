@@ -272,6 +272,59 @@ td:last-child { border-radius: 0 12px 12px 0; }
     text-decoration: none;
     font-weight: 600;
 }
+/* --- Custom Scrollbar Aesthetics --- */
+
+/* 1. Global Scrollbar (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+    width: 10px;  /* Vertical scrollbar width */
+    height: 10px; /* Horizontal scrollbar height */
+}
+
+/* The background of the scrollbar area */
+::-webkit-scrollbar-track {
+    background: var(--bg-dark);
+}
+
+/* The draggable handle */
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, var(--accent-blue) 0%, var(--accent-purple) 100%);
+    border-radius: 20px;
+    border: 2px solid var(--bg-dark); /* Creates a little space around the handle */
+}
+
+::-webkit-scrollbar-thumb:hover {
+	border: 1px solid transparent;
+    background: var(--accent-purple);
+    box-shadow: 0 0 12px rgba(56, 189, 248, 0.5);
+}
+
+/* 2. Firefox Support */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent-blue) var(--bg-dark);
+}
+
+/* 3. Re-enable scrollbars for tables but with custom style */
+/* Remove your previous 'display: none' and 'scrollbar-width: none' for this to show */
+.table-wrapper {
+    overflow-x: auto;
+    scrollbar-width: thin; /* Firefox */
+    -ms-overflow-style: auto; /* IE/Edge */
+}
+
+.table-wrapper::-webkit-scrollbar {
+    display: block; /* Overriding your previous 'none' */
+    height: 6px;    /* Thinner for horizontal table scrolling */
+}
+
+.table-wrapper::-webkit-scrollbar-thumb {
+    background: rgba(56, 189, 248, 0.3); /* Subtle blue for the table */
+}
+
+.table-wrapper::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-purple);
+}
+
 
 @media (max-width: 768px) {
     .container { padding: 20px; }
@@ -292,8 +345,8 @@ td:last-child { border-radius: 0 12px 12px 0; }
     </header>
 
     <div class="tiles">
-        <div class="tile">
-            <h2 th:text="${summary.todayRequests}">0</h2>
+        <div class="tile" style="border-bottom: 3px solid var(--accent-blue);">
+            <h2 th:text="${summary.todayRequests}" style="color: var(--accent-blue);">0</h2>
             <p>📈 Today's Volume</p>
         </div>
         <div class="tile">
@@ -366,7 +419,7 @@ td:last-child { border-radius: 0 12px 12px 0; }
                 </thead>
                 <tbody>
                     <tr th:each="a, iterStat : ${todayAudits}">
-                        <td th:text="${iterStat.count}">1</td>
+                        <td th:text="${currentPage * pageSize + iterStat.index + 1}">1</td>
                         <td th:text="${a.createdAt}" style="font-size: 0.8rem; color: var(--text-dim);">12:00:00</td>
                         <td th:text="${a.clientIp}" style="font-weight: 600;">192.168.1.1</td>
                         <td><span style="font-weight: 800; color: var(--accent-purple);" th:text="${a.httpMethod}">GET</span></td>
@@ -390,8 +443,8 @@ td:last-child { border-radius: 0 12px 12px 0; }
         </div>
 
         <div class="pagination">
-            <a th:href="@{/admin/dashboard(page=${currentPage - 1})}" th:if="${currentPage > 0}">⬅ Prev</a>
-            <a th:href="@{/admin/dashboard(page=${currentPage + 1})}">Next ➡</a>
+            <a th:href="@{/admin/dashboard(page=${currentPage - 1}, size=${pageSize})}" th:if="${currentPage > 0}">⬅ Prev</a>
+			<a th:href="@{/admin/dashboard(page=${currentPage + 1}, size=${pageSize})}">Next ➡</a>
         </div>
     </div>
 </div>
