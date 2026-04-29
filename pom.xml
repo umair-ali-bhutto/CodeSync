@@ -1,43 +1,61 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 
 	<modelVersion>4.0.0</modelVersion>
 
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>2.5.5</version>
-		<relativePath /> <!-- lookup parent from repository -->
+		<version>4.0.6</version>
+		<relativePath/>
+		<!-- lookup parent from repository -->
 	</parent>
 
-	<groupId>com.ag</groupId>
+	<groupId>com.cs</groupId>
 	<artifactId>CodeSync</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>2.0.0</version>
 	<packaging>war</packaging>
 	<name>codesync</name>
 	<description>A simple Codeshare.io–like application</description>
+	<url>https://github.com/umair-ali-bhutto/CodeSync</url>
+	<licenses>
+		<license>
+			<name>MIT License</name>
+			<url>http://www.opensource.org/licenses/mit-license.php</url>
+			<distribution>repo</distribution>
+		</license>
+	</licenses>
 
 	<properties>
-		<java.version>1.8</java.version>
+		<java.version>25</java.version>
+		<maven.compiler.source>25</maven.compiler.source>
+		<maven.compiler.target>25</maven.compiler.target>
+		<maven.compiler.release>25</maven.compiler.release>
 	</properties>
 
 	<scm>
-		<connection>
-			scm:git:git://github.com/umair-ali-bhutto/CodeSync</connection>
-		<developerConnection>
-			scm:git:git://github.com/umair-ali-bhutto/CodeSync</developerConnection>
-		<url>git://github.com/umair-ali-bhutto/CodeSync</url>
+		<connection>scm:git:https://github.com/umair-ali-bhutto/CodeSync.git</connection>
+		<developerConnection>scm:git:ssh://github.com/umair-ali-bhutto/CodeSync.git</developerConnection>
+		<url>https://github.com/umair-ali-bhutto/CodeSync</url>
+		<tag>HEAD</tag>
 	</scm>
+
 	<developers>
 		<developer>
 			<id>umair-ali-bhutto</id>
 			<name>Umair Ali Bhutto</name>
 			<email>umair2101f@aptechgdn.net</email>
 			<url>https://github.com/umair-ali-bhutto/</url>
+			<organization>Individual</organization>
+			<roles>
+				<role>lead developer</role>
+			</roles>
 		</developer>
 	</developers>
+
+
+
 
 	<dependencies>
 		<!-- Exclude default logging (Logback) -->
@@ -87,7 +105,19 @@
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-security</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security-test</artifactId>
+			<scope>test</scope>
 		</dependency>
 
 		<dependency>
@@ -95,6 +125,27 @@
 			<artifactId>spring-boot-starter-thymeleaf</artifactId>
 		</dependency>
 
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-thymeleaf-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.thymeleaf.extras</groupId>
+			<artifactId>thymeleaf-extras-springsecurity6</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-webmvc</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-webmvc-test</artifactId>
+			<scope>test</scope>
+		</dependency>
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -115,8 +166,10 @@
 		</dependency>
 
 		<!-- ORACLE JDBC Driver -->
-		<!-- <dependency> <groupId>com.oracle.database.jdbc</groupId> <artifactId>ojdbc8</artifactId> 
-			</dependency> -->
+		<dependency>
+			<groupId>com.oracle.database.jdbc</groupId>
+			<artifactId>ojdbc11</artifactId>
+		</dependency>
 
 		<!-- MySQL Driver -->
 		<!-- <dependency> <groupId>mysql</groupId> <artifactId>mysql-connector-java</artifactId> 
@@ -129,28 +182,24 @@
 			<artifactId>spring-boot-starter-log4j2</artifactId>
 		</dependency>
 
-		<!-- Other dependencies -->
-		<dependency>
-			<groupId>org.json</groupId>
-			<artifactId>json</artifactId>
-			<version>20231013</version>
-		</dependency>
-		<dependency>
-			<groupId>com.google.code.gson</groupId>
-			<artifactId>gson</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>com.googlecode.json-simple</groupId>
-			<artifactId>json-simple</artifactId>
-			<version>1.1</version>
-		</dependency>
-
-
 		<!-- Bucket4j for Rate Limitting -->
 		<dependency>
 			<groupId>com.github.vladimir-bukhtoyarov</groupId>
 			<artifactId>bucket4j-core</artifactId>
 			<version>4.10.0</version>
+		</dependency>
+
+		<!-- Actuator -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
+
+		<!-- Other dependencies -->
+
+		<dependency>
+			<groupId>jakarta.servlet</groupId>
+			<artifactId>jakarta.servlet-api</artifactId>
 		</dependency>
 
 	</dependencies>
@@ -164,13 +213,14 @@
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
 
-			<!-- Compiler Plugin for Java 1.8 -->
+			<!-- Compiler Plugin for Java 25 -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<configuration>
-					<source>1.8</source>
-					<target>1.8</target>
+					<source>25</source>
+					<target>25</target>
+					<release>25</release>
 				</configuration>
 			</plugin>
 

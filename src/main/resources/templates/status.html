@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>CodeSync | System Monitor</title>
+    <style>
+        :root {
+            --bg: #0a0f1e;
+            --sidebar-bg: #111827;
+            --card-bg: #1e293b;
+            --accent: #38bdf8;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            margin: 0;
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            width: 260px;
+            background: var(--sidebar-bg);
+            border-right: 1px solid rgba(255,255,255,0.05);
+            padding: 2rem 1.5rem;
+            position: fixed;
+            height: 100vh;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--accent);
+            margin-bottom: 3rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-item {
+            padding: 0.8rem 1rem;
+            color: var(--text-dim);
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            background: rgba(56, 189, 248, 0.1);
+            color: var(--accent);
+        }
+
+        /* Main Content Area */
+        .main-content {
+            margin-left: 260px;
+            flex: 1;
+            padding: 3rem;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 3rem;
+        }
+
+        .health-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255,255,255,0.03);
+            padding: 0.5rem 1.2rem;
+            border-radius: 50px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            box-shadow: 0 0 10px currentColor;
+        }
+
+        /* Metrics Display */
+        .section-title {
+            font-size: 1.25rem;
+            margin-bottom: 1.5rem;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid rgba(255,255,255,0.05);
+            padding: 1.5rem;
+            border-radius: 16px;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            border-color: var(--accent);
+        }
+
+        .card::after {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; width: 4px; height: 100%;
+            background: var(--accent);
+            opacity: 0.3;
+        }
+
+        .m-name {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-dim);
+            margin-bottom: 0.5rem;
+            word-break: break-all;
+        }
+
+        .m-value {
+            font-size: 1.6rem;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .search-container {
+            margin-bottom: 2rem;
+        }
+
+        #searchBox {
+            width: 100%;
+            max-width: 500px;
+            background: var(--card-bg);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            color: white;
+            outline: none;
+        }
+
+        #searchBox:focus { border-color: var(--accent); }
+
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="logo">
+            <div style="background: var(--accent); width:30px; height:30px; border-radius:6px;"></div>
+            CodeSync Admin
+        </div>
+        <div class="nav-item active" onclick="filterCat('all')">All Metrics</div>
+        <div class="nav-item"
+     th:each="cat : ${categories.keySet()}"
+     th:text="${cat}"
+     th:attr="data-cat=${cat}">
+</div>
+        
+        <div style="position: absolute; bottom: 2rem; width: calc(100% - 3rem);">
+            <div class="nav-item" onclick="location.reload()">Refresh Data</div>
+            <a href="/logout" style="text-decoration: none;"><div class="nav-item" style="color: var(--danger)">Logout</div></a>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="header">
+            <div>
+                <h1 style="margin:0; font-size: 2.5rem;">System Core</h1>
+                <p style="color: var(--text-dim)">Operational Telemetry for CodeSync Cluster</p>
+            </div>
+            <div class="health-indicator">
+                <div class="dot" th:style="'color:' + (${overallHealth == 'UP'} ? 'var(--success)' : 'var(--danger)')"
+                     th:styleappend="'background-color: currentColor;'"></div>
+                <span th:text="${overallHealth}">UP</span>
+            </div>
+        </div>
+
+        <div class="search-container">
+            <input type="text" id="searchBox" placeholder="Filter metrics by name...">
+        </div>
+
+        <div th:each="category : ${categories}" class="cat-section" th:id="'sec-' + ${category.key}">
+            <div class="section-title">
+                <span th:text="${category.key}">Category</span>
+                <small style="color: var(--text-dim); font-size: 0.8rem;" th:text="'(' + ${category.value.size()} + ' fields)'"></small>
+            </div>
+            <div class="grid">
+                <div class="card" th:each="entry : ${category.value}" th:data-name="${entry.key}">
+                    <div class="m-name" th:text="${entry.key}">metric.name</div>
+                    <div class="m-value" th:text="${entry.value}">0.00</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    
+    document.querySelectorAll('.nav-item[data-cat]').forEach(item => {
+        item.addEventListener('click', function () {
+            const catName = this.getAttribute('data-cat');
+
+            document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+            this.classList.add('active');
+
+            document.querySelectorAll('.cat-section').forEach(sec => {
+                if (catName === 'all') {
+                    sec.classList.remove('hidden');
+                } else {
+                    sec.id === 'sec-' + catName
+                        ? sec.classList.remove('hidden')
+                        : sec.classList.add('hidden');
+                }
+            });
+        });
+    });
+    
+        // Global Search Functionality
+        const searchBox = document.getElementById('searchBox');
+        const cards = document.querySelectorAll('.card');
+
+        searchBox.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            cards.forEach(card => {
+                const name = card.getAttribute('data-name').toLowerCase();
+                card.closest('.card').style.display = name.includes(query) ? 'block' : 'none';
+            });
+        });
+
+        // Category Navigation Functionality
+        function filterCat(catName) {
+            // Update Sidebar UI
+            document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+
+            // Show/Hide Sections
+            document.querySelectorAll('.cat-section').forEach(sec => {
+                if(catName === 'all') {
+                    sec.classList.remove('hidden');
+                } else {
+                    sec.id === 'sec-' + catName ? sec.classList.remove('hidden') : sec.classList.add('hidden');
+                }
+            });
+        }
+
+        // Auto Refresh
+        setTimeout(() => { location.reload(); }, 60000);
+    </script>
+</body>
+</html>

@@ -1,58 +1,58 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Configuration status="WARN">
-
 	<Properties>
-		<!-- Centralize log file path -->
-		<Property name="LOG_DIR">/mnt/8EFED7B1FED79037/UBUNTU-BACKUP/Desktop/ag-mw-logs/</Property>
+		<Property name="LOG_DIR">/mnt/8EFED7B1FED79037/UBUNTU-BACKUP/Desktop/ag-mw-logs/
+		</Property>
+		<Property name="LOG_ARCHIVE_DIR">/mnt/8EFED7B1FED79037/UBUNTU-BACKUP/Desktop/ag-mw-logs/archive/
+		</Property>
 		<Property name="LOG_FILE">CodeSync</Property>
 	</Properties>
 
 	<Appenders>
-		<!-- Console Logging -->
-		<Console name="Console" target="SYSTEM_OUT">
+		<Console name="LogToConsole" target="SYSTEM_OUT">
 			<PatternLayout
-				pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %c{1} - %msg%n" />
+				pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n" />
+
 		</Console>
 
-		<!-- Rolling File Logging -->
-		<RollingFile name="FileLogger"
+		<RollingFile name="LogToFile"
 			fileName="${LOG_DIR}/${LOG_FILE}.log"
-			filePattern="${LOG_DIR}/${LOG_FILE}-%d{yyyy-MM-dd}-%i.log"
+			filePattern="${LOG_ARCHIVE_DIR}/${LOG_FILE}-%d{dd-MM-yyyy}_%i.log.gz"
 			ignoreExceptions="false">
-
 			<PatternLayout>
-				<Pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5p %c{1} [%t] %m%n</Pattern>
+				<Pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5p [%t] %logger{36} - %msg%n
+				</Pattern>
 			</PatternLayout>
-
 			<Policies>
-				<!-- Roll file every day -->
-				<TimeBasedTriggeringPolicy interval="1"
-					modulate="true" />
-				<!-- Also roll if file exceeds 100 MB -->
+				<OnStartupTriggeringPolicy />
 				<SizeBasedTriggeringPolicy size="100 MB" />
+				<TimeBasedTriggeringPolicy />
 			</Policies>
 
-			<DefaultRolloverStrategy max="100" />
+			<DefaultRolloverStrategy max="100"
+				compressionLevel="9">
+				<Delete basePath="${LOG_DIR}" maxDepth="1">
+					<IfFileName glob="${LOG_FILE}-*.log.gz" />
+					<IfLastModified age="60d" />
+				</Delete>
+			</DefaultRolloverStrategy>
+
 		</RollingFile>
 	</Appenders>
-
 	<Loggers>
-		<!-- Your application logs -->
-		<Logger name="com.ag" level="debug" additivity="false">
-			<AppenderRef ref="FileLogger" />
-			<AppenderRef ref="Console" />
+		<Logger name="com.cs" level="debug" additivity="false">
+			<AppenderRef ref="LogToFile" />
+			<AppenderRef ref="LogToConsole" />
 		</Logger>
-
-		<!-- Spring logs (only errors) -->
 		<Logger name="org.springframework.boot" level="error"
 			additivity="false">
-			<AppenderRef ref="Console" />
+			<AppenderRef ref="LogToFile" />
+			<AppenderRef ref="LogToConsole" />
 		</Logger>
-
-		<!-- Root logger -->
 		<Root level="error">
-			<AppenderRef ref="FileLogger" />
-			<AppenderRef ref="Console" />
+			<AppenderRef ref="LogToFile" />
+			<AppenderRef ref="LogToConsole" />
 		</Root>
 	</Loggers>
+
 </Configuration>
