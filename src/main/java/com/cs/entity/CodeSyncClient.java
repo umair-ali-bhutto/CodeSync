@@ -5,7 +5,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "code_sync_clients")
+@Table(name = "CODE_SYNC_CLIENTS")
 public class CodeSyncClient {
 
 	@Id

@@ -1,7 +1,179 @@
 
 
-fix in other htmls
-<a th:href="@{/admin/dashboard}">Go to Dashboard</a>
+
+
+resilliance 4j
+
+Good, I have everything I need. Here's what you need to do — it's a two-part change: config + controller update.
+
+---
+
+## Step 1 — `application.yml` configuration
+
+Resilience4j metrics are automatically published to the Actuator metrics endpoint, but you need to expose the endpoints and enable health indicators first:
+
+```yaml
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: always
+  health:
+    circuitbreakers:
+      enabled: true
+    ratelimiters:
+      enabled: true
+```
+
+Also, for each Resilience4j instance you configure, add `registerHealthIndicator: true`:
+
+```yaml
+resilience4j:
+  circuitbreaker:
+    instances:
+      myService:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+  retry:
+    instances:
+      myService:
+        registerHealthIndicator: true
+        maxAttempts: 3
+  ratelimiter:
+    instances:
+      myService:
+        registerHealthIndicator: true
+```
+
+---
+
+## Step 2 — Update `ActuatorAdminController.java`
+
+Add a `"Resilience4j"` category in your existing categorization logic:
+
+```java
+categories.put("Resilience4j", new TreeMap<>());
+```
+
+Then add a new `else if` branch in your metric routing block, before the `else`:
+
+```java
+} else if (name.startsWith("resilience4j")) {
+    categories.get("Resilience4j").put(name, formatted);
+} else {
+    categories.get("Other").put(name, formatted);
+}
+```
+
+---
+
+## Step 3 — Update `status.html` (Thymeleaf template)
+
+Add a new tag style for the Resilience4j section in your `<style>` block:
+
+```css
+.section-tag.resilience4j {
+    background: rgba(251, 113, 133, 0.12);
+    color: #fb7185;
+    border: 1px solid rgba(251, 113, 133, 0.3);
+}
+```
+
+Then update the `th:classappend` on your `<span class="section-tag">` to handle the new category:
+
+```html
+th:classappend="${cat.key == 'JVM Memory'} ? 'jvm-memory' :
+              (${cat.key == 'JVM Threads'} ? 'jvm-threads' :
+              (${cat.key == 'System'} ? 'system' :
+              (${cat.key == 'HTTP &amp; Web'} ? 'http' :
+              (${cat.key == 'Resilience4j'} ? 'resilience4j' : 'other'))))"
+```
+
+---
+
+## What metrics you'll see
+
+Once wired up, metrics prefixed with `resilience4j.*` will appear in their own dashboard section. These include things like:
+
+| Metric | What it shows |
+|---|---|
+| `resilience4j.circuitbreaker.state` | CLOSED / OPEN / HALF_OPEN |
+| `resilience4j.circuitbreaker.calls` | successful, failed, not_permitted |
+| `resilience4j.circuitbreaker.failure.rate` | % of failed calls |
+| `resilience4j.retry.calls` | successful_without_retry, failed_with_retry, etc. |
+| `resilience4j.ratelimiter.available.permissions` | remaining permits |
+| `resilience4j.bulkhead.available.concurrent.calls` | concurrency headroom |
+
+> **Note:** Metrics only appear after the annotated methods are actually called at least once — Resilience4j registers them lazily on first use.
+
+
+
+Here's the full translation of everything to `application.properties` format:
+
+```properties
+# ─── Actuator Endpoints ───────────────────────────────────────
+management.endpoints.web.exposure.include=*
+management.endpoint.health.show-details=always
+
+# ─── Health Indicators ────────────────────────────────────────
+management.health.circuitbreakers.enabled=true
+management.health.ratelimiters.enabled=true
+
+# ─── Circuit Breaker ──────────────────────────────────────────
+resilience4j.circuitbreaker.instances.myService.register-health-indicator=true
+resilience4j.circuitbreaker.instances.myService.sliding-window-size=10
+resilience4j.circuitbreaker.instances.myService.failure-rate-threshold=50
+resilience4j.circuitbreaker.instances.myService.wait-duration-in-open-state=5s
+resilience4j.circuitbreaker.instances.myService.permitted-number-of-calls-in-half-open-state=3
+resilience4j.circuitbreaker.instances.myService.automatic-transition-from-open-to-half-open-enabled=true
+
+# ─── Retry ────────────────────────────────────────────────────
+resilience4j.retry.instances.myService.register-health-indicator=true
+resilience4j.retry.instances.myService.max-attempts=3
+resilience4j.retry.instances.myService.wait-duration=1s
+resilience4j.retry.metrics.enabled=true
+
+# ─── Rate Limiter ─────────────────────────────────────────────
+resilience4j.ratelimiter.instances.myService.register-health-indicator=true
+resilience4j.ratelimiter.instances.myService.limit-for-period=10
+resilience4j.ratelimiter.instances.myService.limit-refresh-period=1s
+resilience4j.ratelimiter.instances.myService.timeout-duration=0s
+
+# ─── Bulkhead ─────────────────────────────────────────────────
+resilience4j.bulkhead.instances.myService.max-concurrent-calls=5
+resilience4j.bulkhead.instances.myService.max-wait-duration=0ms
+resilience4j.bulkhead.metrics.enabled=true
+```
+
+Two things to keep in mind:
+
+**Replace `myService`** with whatever name you used in your `@CircuitBreaker(name = "...")`, `@Retry(name = "...")` annotations. If you have multiple instances, just repeat the block with a different name, e.g. `resilience4j.circuitbreaker.instances.paymentService...`, `resilience4j.circuitbreaker.instances.orderService...` etc.
+
+**Kebab-case vs camelCase** — `application.properties` uses kebab-case (`sliding-window-size`) while YAML often shows camelCase (`slidingWindowSize`). Spring Boot accepts both, but kebab-case is the official convention for properties files.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -466,3 +638,9 @@ public class ErrorController {
 | Security — 403 browser | Access denied | `SecurityConfig` → redirects to `/access-denied` → same `error.html` |
 | Security — 401 API | Not authenticated | `jwtAuthenticationEntryPoint` → JSON |
 | 404 (no route) | `NoHandlerFoundException` | `GlobalControllerExceptionHandler` → `error.html` |
+
+
+fix harcoded context roots
+CodeSyncUtil -> getHtmlErrorPage
+SecurityConfig -> requestLoggingFilter
+sharepage.html

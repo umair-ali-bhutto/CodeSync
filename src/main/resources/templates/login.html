@@ -24,7 +24,7 @@
     <!-- Show message if logged out -->
     <div th:if="${param.logout}" class="logout">You have been logged out.</div>
 
-    <form method="post" action="/codesync/login">
+    <form th:action="@{/login}" method="post">
         <!-- CSRF token - required by Spring Security -->
         <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"/>
         <label>Username</label>

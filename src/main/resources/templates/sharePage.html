@@ -26,7 +26,15 @@
 	<meta property="og:description" content="CodeSync lets you instantly share code and text using a simple URL. Collaborate in real time with auto-save, live updates, and zero sign-up required.">
 	<meta property="og:type" content="website">
 	<meta property="og:site_name" content="CodeSync">
+
+
+
 	<meta property="og:url" content="http://172.191.1.223:8081/codesync/share/">
+    <!-- THIS WORKS -->
+    <meta property="og:url" th:content="${@environment.getProperty('security.blocked-ips')} + @{/share/}" />
+
+    
+
 	<meta property="og:image" content="https://umair-ali-bhutto.github.io/assets/CodePenIcon/logo.png">
 
 	<!-- ==================== Twitter / X ==================== -->

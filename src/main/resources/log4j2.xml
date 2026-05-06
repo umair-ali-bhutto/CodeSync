@@ -25,13 +25,13 @@
 			</PatternLayout>
 			<Policies>
 				<OnStartupTriggeringPolicy />
-				<SizeBasedTriggeringPolicy size="100 MB" />
-				<TimeBasedTriggeringPolicy />
+				<SizeBasedTriggeringPolicy size="200 MB" />
+				<TimeBasedTriggeringPolicy interval="1" modulate="true"/>
 			</Policies>
 
-			<DefaultRolloverStrategy max="100"
+			<DefaultRolloverStrategy max="500"
 				compressionLevel="9">
-				<Delete basePath="${LOG_DIR}" maxDepth="1">
+				<Delete basePath="${LOG_ARCHIVE_DIR}" maxDepth="1">
 					<IfFileName glob="${LOG_FILE}-*.log.gz" />
 					<IfLastModified age="60d" />
 				</Delete>
