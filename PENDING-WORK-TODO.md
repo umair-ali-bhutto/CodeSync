@@ -466,3 +466,9 @@ public class ErrorController {
 | Security — 403 browser | Access denied | `SecurityConfig` → redirects to `/access-denied` → same `error.html` |
 | Security — 401 API | Not authenticated | `jwtAuthenticationEntryPoint` → JSON |
 | 404 (no route) | `NoHandlerFoundException` | `GlobalControllerExceptionHandler` → `error.html` |
+
+
+fix harcoded context roots
+CodeSyncUtil -> getHtmlErrorPage
+SecurityConfig -> requestLoggingFilter
+sharepage.html

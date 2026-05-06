@@ -126,8 +126,6 @@ public class SecurityConfig {
 	 * 
 	 * Credentials are loaded from application.properties
 	 * 
-	 * TODO: Replace with database-backed authentication in production Consider
-	 * using JPA UserDetailsService for production environments
 	 */
 	@Bean
 	public UserDetailsService userDetailsService() {
