@@ -39,6 +39,24 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint, Se
 	@Override
 	public void commence(HttpServletRequest request, HttpServletResponse response,
 			AuthenticationException authException) throws IOException {
-		response = CodeSyncUtil.getHtmlErrorPage(response);
+
+		String acceptHeader = request.getHeader("Accept");
+		String requestedWith = request.getHeader("X-Requested-With");
+		String uri = request.getRequestURI();
+
+		// ✅ Don't redirect if already on login page — breaks the loop
+		boolean isLoginPage = uri.contains("/login");
+
+		boolean isBrowserRequest = acceptHeader != null && acceptHeader.contains("text/html")
+				&& !"XMLHttpRequest".equals(requestedWith);
+
+		boolean isApiRequest = uri.startsWith("/api/") || uri.startsWith("/logsService") || uri.startsWith("/share/");
+
+		if (isBrowserRequest && !isApiRequest && !isLoginPage) {
+			response.sendRedirect(request.getContextPath() + "/login");
+		} else {
+			CodeSyncUtil.getHtmlErrorPage(response);
+		}
 	}
+
 }

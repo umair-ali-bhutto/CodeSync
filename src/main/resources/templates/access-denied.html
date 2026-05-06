@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+
+<head>
+	<title>Access Denied | CodeSync</title>
+	<style>
+		* {
+			box-sizing: border-box;
+			margin: 0;
+			padding: 0;
+		}
+
+		body {
+			background: #060910;
+			color: #f1f5f9;
+			font-family: 'Segoe UI', sans-serif;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			min-height: 100vh;
+			padding: 1rem;
+		}
+
+		.card {
+			background: #111827;
+			border: 1px solid rgba(248, 113, 113, 0.2);
+			border-radius: 16px;
+			padding: 3rem 2.5rem;
+			max-width: 480px;
+			width: 100%;
+			text-align: center;
+		}
+
+		.code {
+			font-size: 5rem;
+			font-weight: 900;
+			color: #f87171;
+			line-height: 1;
+			margin-bottom: 0.5rem;
+			letter-spacing: -3px;
+		}
+
+		.title {
+			font-size: 1.4rem;
+			font-weight: 700;
+			margin-bottom: 0.75rem;
+		}
+
+		.desc {
+			color: #64748b;
+			font-size: 0.9rem;
+			line-height: 1.6;
+			margin-bottom: 2rem;
+		}
+
+		.user-badge {
+			display: inline-block;
+			background: rgba(248, 113, 113, 0.1);
+			border: 1px solid rgba(248, 113, 113, 0.3);
+			color: #f87171;
+			padding: 0.3rem 0.8rem;
+			border-radius: 6px;
+			font-size: 0.8rem;
+			font-family: monospace;
+			margin-bottom: 2rem;
+		}
+
+		.btn {
+			display: inline-block;
+			padding: 0.75rem 1.75rem;
+			border-radius: 8px;
+			font-size: 0.9rem;
+			font-weight: 600;
+			cursor: pointer;
+			text-decoration: none;
+			transition: all 0.15s;
+			margin: 0.25rem;
+		}
+
+		.btn-primary {
+			background: #38bdf8;
+			color: #060910;
+			border: none;
+		}
+
+		.btn-primary:hover {
+			background: #7dd3fc;
+		}
+
+		.btn-secondary {
+			background: transparent;
+			color: #64748b;
+			border: 1px solid rgba(255, 255, 255, 0.1);
+		}
+
+		.btn-secondary:hover {
+			color: #f1f5f9;
+			border-color: rgba(255, 255, 255, 0.3);
+		}
+
+		.divider {
+			border: none;
+			border-top: 1px solid rgba(255, 255, 255, 0.05);
+			margin: 2rem 0 1.5rem;
+		}
+	</style>
+</head>
+
+<body>
+	<div class="card">
+		<div class="code">403</div>
+		<div class="title">Access Denied</div>
+		<p class="desc">You don't have permission to access this resource.
+			This action requires elevated privileges.</p>
+		<div class="user-badge">
+			Logged in as: <span th:text="${user}"></span>
+		</div>
+		<hr class="divider">
+		<a th:href="@{/admin/dashboard}" class="btn btn-primary">Go to Dashboard</a>
+
+		<a th:href="@{/logout}" class="btn btn-secondary">Logout</a>
+	</div>
+</body>
+
+</html>

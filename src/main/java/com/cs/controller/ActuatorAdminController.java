@@ -26,51 +26,84 @@ public class ActuatorAdminController {
 
 	@GetMapping("/status")
 	public String getFullDashboard(Model model) {
-		// 1. App Health Status
-		model.addAttribute("overallHealth", healthEndpoint.health().getStatus().getCode());
 
-		// 2. Organized Metrics Map
-		Map<String, Map<String, String>> categorizedMetrics = new LinkedHashMap<>();
-		categorizedMetrics.put("System", new TreeMap<>());
-		categorizedMetrics.put("JVM", new TreeMap<>());
-		categorizedMetrics.put("HTTP & Web", new TreeMap<>());
-		categorizedMetrics.put("Other", new TreeMap<>());
+		// 1. Health
+		var health = healthEndpoint.health();
+		String status = health.getStatus().getCode();
+		model.addAttribute("overallHealth", status);
+		model.addAttribute("healthUp", "UP".equals(status));
 
+		// 2. Categorized metrics with units
+		Map<String, Map<String, String>> categories = new LinkedHashMap<>();
+		categories.put("JVM Memory", new TreeMap<>());
+		categories.put("JVM Threads", new TreeMap<>());
+		categories.put("System", new TreeMap<>());
+		categories.put("HTTP & Web", new TreeMap<>());
+		categories.put("Other", new TreeMap<>());
+
+		int totalMetrics = 0;
 		MetricNamesDescriptor names = metricsEndpoint.listNames();
 
 		for (String name : names.getNames()) {
 			try {
 				var metric = metricsEndpoint.metric(name, null);
-				if (metric != null && !metric.getMeasurements().isEmpty()) {
-					double value = metric.getMeasurements().get(0).getValue();
-					String formattedValue = formatMetric(name, value);
+				if (metric == null || metric.getMeasurements().isEmpty())
+					continue;
 
-					// Categorization Logic
-					if (name.startsWith("system") || name.startsWith("process") || name.startsWith("disk")) {
-						categorizedMetrics.get("System").put(name, formattedValue);
-					} else if (name.startsWith("jvm")) {
-						categorizedMetrics.get("JVM").put(name, formattedValue);
-					} else if (name.startsWith("http") || name.startsWith("tomcat")) {
-						categorizedMetrics.get("HTTP & Web").put(name, formattedValue);
-					} else {
-						categorizedMetrics.get("Other").put(name, formattedValue);
-					}
+				double value = metric.getMeasurements().get(0).getValue();
+				String formatted = formatMetric(name, value);
+				totalMetrics++;
+
+				if (name.startsWith("jvm.memory") || name.startsWith("jvm.gc") || name.contains("heap")) {
+					categories.get("JVM Memory").put(name, formatted);
+				} else if (name.startsWith("jvm.thread") || name.startsWith("jvm.class")) {
+					categories.get("JVM Threads").put(name, formatted);
+				} else if (name.startsWith("jvm")) {
+					categories.get("JVM Threads").put(name, formatted);
+				} else if (name.startsWith("system") || name.startsWith("process") || name.startsWith("disk")) {
+					categories.get("System").put(name, formatted);
+				} else if (name.startsWith("http") || name.startsWith("tomcat")) {
+					categories.get("HTTP & Web").put(name, formatted);
+				} else {
+					categories.get("Other").put(name, formatted);
 				}
 			} catch (Exception ignored) {
 			}
 		}
 
-		model.addAttribute("categories", categorizedMetrics);
+		// Remove empty categories
+		categories.entrySet().removeIf(e -> e.getValue().isEmpty());
+
+		model.addAttribute("categories", categories);
+		model.addAttribute("totalMetrics", totalMetrics);
+		model.addAttribute("totalCategories", categories.size());
+		model.addAttribute("refreshTime", java.time.LocalDateTime.now()
+				.format(java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm:ss")));
+
 		return "status";
 	}
 
 	private String formatMetric(String name, double value) {
 		if (name.contains("bytes") || name.contains("memory") || name.contains("size")) {
-			return String.format("%.2f MB", value / (1024 * 1024));
+			if (value >= 1_073_741_824)
+				return String.format("%.2f GB", value / 1_073_741_824);
+			if (value >= 1_048_576)
+				return String.format("%.2f MB", value / 1_048_576);
+			if (value >= 1024)
+				return String.format("%.2f KB", value / 1024);
+			return String.format("%.0f B", value);
 		} else if (name.contains("usage") || name.contains("percent")) {
-			return String.format("%.2f %%", value * 100);
-		} else if (name.contains("time")) {
-			return String.format("%.4f s", value);
+			return String.format("%.1f%%", value * 100);
+		} else if (name.contains("time") || name.contains("duration")) {
+			if (value >= 60)
+				return String.format("%.1f min", value / 60);
+			if (value >= 1)
+				return String.format("%.2f s", value);
+			return String.format("%.1f ms", value * 1000);
+		} else if (value >= 1_000_000) {
+			return String.format("%.2fM", value / 1_000_000);
+		} else if (value >= 1_000) {
+			return String.format("%.1fK", value / 1_000);
 		}
 		return String.format("%.0f", value);
 	}

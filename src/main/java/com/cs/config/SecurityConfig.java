@@ -1,11 +1,8 @@
 package com.cs.config;
 
-import java.io.IOException;
+import static org.springframework.security.config.Customizer.withDefaults;
 
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,8 +27,10 @@ import com.cs.service.CodeSyncAuditService;
 import com.cs.service.CodeSyncClientCache;
 
 import io.github.bucket4j.Bucket;
-
-import static org.springframework.security.config.Customizer.withDefaults;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 @Configuration
 @EnableWebSecurity
@@ -46,16 +45,16 @@ public class SecurityConfig {
 	@Autowired
 	private SecurityProtectionConfig protectionConfig;
 
-	@Value("${dashboard.admin.username:admin}")
+	@Value("${dashboard.admin.username}")
 	private String adminUsername;
 
-	@Value("${dashboard.admin.password:abc123+}")
+	@Value("${dashboard.admin.password}")
 	private String adminPassword;
 
-	@Value("${dashboard.user.username:umair.ali}")
+	@Value("${dashboard.user.username}")
 	private String userUsername;
 
-	@Value("${dashboard.user.password:abc123+}")
+	@Value("${dashboard.user.password}")
 	private String userPassword;
 
 	/**
@@ -65,31 +64,51 @@ public class SecurityConfig {
 	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
 		http.addFilterBefore(requestLoggingFilter(), UsernamePasswordAuthenticationFilter.class)
-				.csrf(csrf -> csrf.ignoringRequestMatchers("/api/**", "/logsService", "/actuator/**"))
+				.csrf(csrf -> csrf.ignoringRequestMatchers("/api/**", "/logsService", "/actuator/**", "/login"))
 				.authorizeHttpRequests(auth -> auth
 
 						// Public API's and Logs
 						.requestMatchers("/api/share/*", "/share/*", "/logsService").permitAll()
 
-						// Secure Actuator: Only allow authenticated users (or .hasRole("ADMIN"))
+						// CRITICAL: login page must be explicitly permitted
+						.requestMatchers("/login", "/login/**").permitAll()
+
+						// For ERROR PAGE
+						.requestMatchers("/access-denied").permitAll()
+
+						// Secure Actuator
 						.requestMatchers("/actuator/**").hasRole("ADMIN")
 
-						// For Admin Dashboard - REQUIRES USERNAME/PASSWORD AUTHENTICATION
-						.requestMatchers("/admin/dashboard").permitAll()
-						.requestMatchers("/admin/dashboard/download").permitAll()
-//						.requestMatchers("/admin/dashboard/status").hasRole("ADMIN")
-						.requestMatchers("/admin/dashboard/status").permitAll()
-						
+						// Admin Dashboard
+						.requestMatchers("/admin/dashboard").authenticated()
+						.requestMatchers("/admin/dashboard/download").hasRole("ADMIN")
+						.requestMatchers("/admin/dashboard/status").hasRole("ADMIN")
+
 						// EVERYTHING ELSE
 						.anyRequest().authenticated())
-				.exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthenticationEntryPoint))
+				.exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthenticationEntryPoint)
+						.accessDeniedHandler((request, response, accessDeniedException) -> {
+							String acceptHeader = request.getHeader("Accept");
+							boolean isBrowser = acceptHeader != null && acceptHeader.contains("text/html");
+
+							if (isBrowser) {
+								response.sendRedirect(request.getContextPath() + "/access-denied");
+							} else {
+								response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+								response.setContentType("application/json");
+								response.getWriter().write("{\"error\":\"Access Denied\",\"status\":403}");
+							}
+						}))
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
 				// Enable form login for dashboard authentication
-				.formLogin(form -> form.defaultSuccessUrl("/admin/dashboard", true).permitAll())
-				// Enable HTTP Basic authentication (useful for API testing)
-				.httpBasic(withDefaults())
+				.formLogin(form -> form.loginPage("/login").loginProcessingUrl("/login")
+						.defaultSuccessUrl("/admin/dashboard", false).permitAll())
 				// Logout configuration
-				.logout(logout -> logout.logoutUrl("/logout").logoutSuccessUrl("/login?logout").permitAll());
+				.logout(logout -> logout.logoutUrl("/logout").logoutSuccessUrl("/login?logout")
+						.invalidateHttpSession(true).clearAuthentication(true).deleteCookies("JSESSIONID").permitAll())
+
+				// Enable HTTP Basic authentication (useful for API testing)
+				.httpBasic(withDefaults());
 
 		return http.build();
 	}

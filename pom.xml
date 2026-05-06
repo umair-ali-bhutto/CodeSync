@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 
 	<modelVersion>4.0.0</modelVersion>
 
@@ -8,7 +9,7 @@
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
 		<version>4.0.6</version>
-		<relativePath/>
+		<relativePath />
 		<!-- lookup parent from repository -->
 	</parent>
 
@@ -36,7 +37,8 @@
 
 	<scm>
 		<connection>scm:git:https://github.com/umair-ali-bhutto/CodeSync.git</connection>
-		<developerConnection>scm:git:ssh://github.com/umair-ali-bhutto/CodeSync.git</developerConnection>
+		<developerConnection>
+			scm:git:ssh://github.com/umair-ali-bhutto/CodeSync.git</developerConnection>
 		<url>https://github.com/umair-ali-bhutto/CodeSync</url>
 		<tag>HEAD</tag>
 	</scm>
@@ -53,8 +55,6 @@
 			</roles>
 		</developer>
 	</developers>
-
-
 
 
 	<dependencies>
@@ -171,11 +171,6 @@
 			<artifactId>ojdbc11</artifactId>
 		</dependency>
 
-		<!-- MySQL Driver -->
-		<!-- <dependency> <groupId>mysql</groupId> <artifactId>mysql-connector-java</artifactId> 
-			<scope>runtime</scope> </dependency> -->
-
-
 		<!-- Add Log4j2 starter -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -195,12 +190,31 @@
 			<artifactId>spring-boot-starter-actuator</artifactId>
 		</dependency>
 
-		<!-- Other dependencies -->
+		<!-- Resilience4j Spring Boot integration -->
+		<dependency>
+			<groupId>io.github.resilience4j</groupId>
+			<artifactId>resilience4j-spring-boot4</artifactId>
+			<version>2.4.0</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-aop</artifactId>
+			<version>3.5.13</version>
+			<scope>compile</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>io.github.resilience4j</groupId>
+			<artifactId>resilience4j-micrometer</artifactId>
+			<version>2.4.0</version>
+		</dependency>
 
 		<dependency>
 			<groupId>jakarta.servlet</groupId>
 			<artifactId>jakarta.servlet-api</artifactId>
 		</dependency>
+
 
 	</dependencies>
 

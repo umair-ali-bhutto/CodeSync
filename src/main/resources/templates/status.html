@@ -1,273 +1,1017 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <title>CodeSync | System Monitor</title>
-    <style>
-        :root {
-            --bg: #0a0f1e;
-            --sidebar-bg: #111827;
-            --card-bg: #1e293b;
-            --accent: #38bdf8;
-            --success: #10b981;
-            --warning: #f59e0b;
-            --danger: #ef4444;
-            --text-main: #f8fafc;
-            --text-dim: #94a3b8;
-        }
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>CodeSync | System Monitor</title>
 
-        body {
-            background-color: var(--bg);
-            color: var(--text-main);
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
-            margin: 0;
-            display: flex;
-            min-height: 100vh;
-        }
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://gstatic.com" crossorigin>
+	<link
+		href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap"
+		rel="stylesheet">
 
-        /* Sidebar Navigation */
-        .sidebar {
-            width: 260px;
-            background: var(--sidebar-bg);
-            border-right: 1px solid rgba(255,255,255,0.05);
-            padding: 2rem 1.5rem;
-            position: fixed;
-            height: 100vh;
-        }
 
-        .logo {
-            font-size: 1.5rem;
-            font-weight: 800;
-            color: var(--accent);
-            margin-bottom: 3rem;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+	<style>
+		:root {
+			--bg: #060910;
+			--surface: #0d1117;
+			--card: #111827;
+			--card-hover: #162032;
+			--border: rgba(255, 255, 255, 0.06);
+			--border-lit: rgba(56, 189, 248, 0.35);
+			--accent: #38bdf8;
+			--accent2: #818cf8;
+			--success: #34d399;
+			--warning: #fbbf24;
+			--danger: #f87171;
+			--text: #f1f5f9;
+			--muted: #64748b;
+			--dim: #334155;
+			--sidebar-w: 270px;
+			--header-h: 64px;
+			/* Font Stack */
+			--font-main: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+			--font-mono: 'JetBrains Mono', monospace;
+		}
 
-        .nav-item {
-            padding: 0.8rem 1rem;
-            color: var(--text-dim);
-            cursor: pointer;
-            border-radius: 8px;
-            transition: all 0.2s;
-            margin-bottom: 0.5rem;
-            font-weight: 500;
-        }
 
-        .nav-item:hover, .nav-item.active {
-            background: rgba(56, 189, 248, 0.1);
-            color: var(--accent);
-        }
 
-        /* Main Content Area */
-        .main-content {
-            margin-left: 260px;
-            flex: 1;
-            padding: 3rem;
-        }
+		*,
+		*::before,
+		*::after {
+			box-sizing: border-box;
+			margin: 0;
+			padding: 0;
+		}
 
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 3rem;
-        }
+		html {
+			scroll-behavior: smooth;
+		}
 
-        .health-indicator {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            background: rgba(255,255,255,0.03);
-            padding: 0.5rem 1.2rem;
-            border-radius: 50px;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
 
-        .dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            box-shadow: 0 0 10px currentColor;
-        }
 
-        /* Metrics Display */
-        .section-title {
-            font-size: 1.25rem;
-            margin-bottom: 1.5rem;
-            color: var(--text-main);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+		body {
+			background: var(--bg);
+			color: var(--text);
+			font-family: var(--font-main);
+			-webkit-font-smoothing: antialiased;
+			-moz-osx-font-smoothing: grayscale;
+			min-height: 100vh;
+			overflow-x: hidden;
+		}
 
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 3rem;
-        }
 
-        .card {
-            background: var(--card-bg);
-            border: 1px solid rgba(255,255,255,0.05);
-            padding: 1.5rem;
-            border-radius: 16px;
-            position: relative;
-            overflow: hidden;
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
+		/* ─── BACKGROUND GRID ─── */
+		body::before {
+			content: '';
+			position: fixed;
+			inset: 0;
+			background-image: linear-gradient(var(--border) 1px, transparent 1px),
+				linear-gradient(90deg, var(--border) 1px, transparent 1px);
+			background-size: 48px 48px;
+			pointer-events: none;
+			z-index: 0;
+		}
 
-        .card:hover {
-            transform: translateY(-5px);
-            border-color: var(--accent);
-        }
+		/* ─── MOBILE TOP BAR ─── */
+		.topbar {
+			display: none;
+			position: fixed;
+			top: 0;
+			left: 0;
+			right: 0;
+			height: var(--header-h);
+			background: var(--surface);
+			border-bottom: 1px solid var(--border);
+			z-index: 200;
+			align-items: center;
+			justify-content: space-between;
+			padding: 0 1.25rem;
+		}
 
-        .card::after {
-            content: "";
-            position: absolute;
-            top: 0; left: 0; width: 4px; height: 100%;
-            background: var(--accent);
-            opacity: 0.3;
-        }
+		.topbar-logo {
+			font-size: 1.1rem;
+			font-weight: 800;
+			color: var(--accent);
+			letter-spacing: -0.5px;
+		}
 
-        .m-name {
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--text-dim);
-            margin-bottom: 0.5rem;
-            word-break: break-all;
-        }
+		.hamburger {
+			background: none;
+			border: 1px solid var(--border);
+			color: var(--text);
+			width: 38px;
+			height: 38px;
+			border-radius: 8px;
+			cursor: pointer;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			justify-content: center;
+			gap: 5px;
+			padding: 0;
+			transition: border-color 0.2s;
+		}
 
-        .m-value {
-            font-size: 1.6rem;
-            font-weight: 700;
-            font-variant-numeric: tabular-nums;
-        }
+		.hamburger:hover {
+			border-color: var(--accent);
+		}
 
-        .search-container {
-            margin-bottom: 2rem;
-        }
+		.hamburger span {
+			display: block;
+			width: 18px;
+			height: 2px;
+			background: var(--text);
+			border-radius: 2px;
+			transition: all 0.3s;
+		}
 
-        #searchBox {
-            width: 100%;
-            max-width: 500px;
-            background: var(--card-bg);
-            border: 1px solid rgba(255,255,255,0.1);
-            padding: 1rem 1.5rem;
-            border-radius: 12px;
-            color: white;
-            outline: none;
-        }
+		.hamburger.open span:nth-child(1) {
+			transform: translateY(7px) rotate(45deg);
+		}
 
-        #searchBox:focus { border-color: var(--accent); }
+		.hamburger.open span:nth-child(2) {
+			opacity: 0;
+		}
 
-        .hidden { display: none; }
-    </style>
+		.hamburger.open span:nth-child(3) {
+			transform: translateY(-7px) rotate(-45deg);
+		}
+
+		/* ─── SIDEBAR OVERLAY (mobile) ─── */
+		.overlay {
+			display: none;
+			position: fixed;
+			inset: 0;
+			background: rgba(0, 0, 0, 0.6);
+			backdrop-filter: blur(2px);
+			z-index: 150;
+		}
+
+		.overlay.show {
+			display: block;
+		}
+
+		/* ─── SIDEBAR ─── */
+		.sidebar {
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: var(--sidebar-w);
+			height: 100vh;
+			background: var(--surface);
+			border-right: 1px solid var(--border);
+			display: flex;
+			flex-direction: column;
+			z-index: 160;
+			transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+			overflow-y: auto;
+		}
+
+		.sidebar-inner {
+			padding: 1.75rem 1.25rem;
+			flex: 1;
+			display: flex;
+			flex-direction: column;
+		}
+
+		.logo {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			margin-bottom: 2.5rem;
+			text-decoration: none;
+		}
+
+		.logo-icon {
+			width: 34px;
+			height: 34px;
+			background: var(--accent);
+			border-radius: 8px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-size: 16px;
+		}
+
+		.logo-text {
+			font-size: 1.15rem;
+			font-weight: 700;
+			color: var(--text);
+			letter-spacing: -0.02em;
+		}
+
+
+		.logo-sub {
+			font-size: 0.65rem;
+			color: var(--muted);
+			font-family: 'JetBrains Mono', monospace;
+			letter-spacing: 1px;
+			text-transform: uppercase;
+		}
+
+		.nav-label {
+			font-size: 0.65rem;
+			text-transform: uppercase;
+			letter-spacing: 1.5px;
+			color: var(--muted);
+			padding: 0 0.75rem;
+			margin-bottom: 0.5rem;
+			margin-top: 1.25rem;
+		}
+
+		.nav-item {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			padding: 0.65rem 0.85rem;
+			color: var(--muted);
+			cursor: pointer;
+			border-radius: 8px;
+			font-size: 0.88rem;
+			font-weight: 500;
+			transition: all 0.15s;
+			border: 1px solid transparent;
+			text-decoration: none;
+			margin-bottom: 2px;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			font-family: var(--font-main);
+			letter-spacing: -0.01em;
+		}
+
+
+		.nav-item:hover {
+			background: rgba(56, 189, 248, 0.07);
+			color: var(--accent);
+			border-color: var(--border-lit);
+		}
+
+		.nav-item.active {
+			background: rgba(56, 189, 248, 0.12);
+			color: var(--accent);
+			border-color: var(--border-lit);
+		}
+
+		.nav-badge {
+			margin-left: auto;
+			background: var(--dim);
+			color: var(--muted);
+			font-size: 0.65rem;
+			font-family: 'JetBrains Mono', monospace;
+			padding: 2px 6px;
+			border-radius: 4px;
+			flex-shrink: 0;
+		}
+
+		.sidebar-footer {
+			padding: 1rem 1.25rem;
+			border-top: 1px solid var(--border);
+			display: flex;
+			flex-direction: column;
+			gap: 4px;
+		}
+
+		.btn-sidebar {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			padding: 0.6rem 0.85rem;
+			border-radius: 8px;
+			font-size: 0.85rem;
+			cursor: pointer;
+			border: 1px solid var(--border);
+			background: none;
+			color: var(--muted);
+			transition: all 0.15s;
+			text-decoration: none;
+			width: 100%;
+
+			font-family: var(--font-main);
+			font-weight: 500;
+		}
+
+		.btn-sidebar:hover {
+			background: var(--card);
+			color: var(--text);
+		}
+
+		.btn-sidebar.danger:hover {
+			background: rgba(248, 113, 113, 0.1);
+			color: var(--danger);
+			border-color: rgba(248, 113, 113, 0.3);
+		}
+
+		/* ─── MAIN ─── */
+		.main {
+			margin-left: var(--sidebar-w);
+			position: relative;
+			z-index: 1;
+			min-height: 100vh;
+		}
+
+		.content {
+			padding: 2.5rem 2.25rem;
+			max-width: 1400px;
+		}
+
+		/* ─── HEADER ─── */
+		.page-header {
+			display: flex;
+			align-items: flex-start;
+			justify-content: space-between;
+			gap: 1.5rem;
+			margin-bottom: 2.5rem;
+			flex-wrap: wrap;
+		}
+
+		.page-title {
+			font-size: clamp(1.8rem, 4vw, 2.75rem);
+			font-weight: 800;
+			font-family: var(--font-main);
+
+			letter-spacing: -0.04em;
+
+			line-height: 1.1;
+			background: linear-gradient(135deg, var(--text) 40%, var(--muted));
+			-webkit-background-clip: text;
+			-webkit-text-fill-color: transparent;
+			background-clip: text;
+		}
+
+
+		.page-sub {
+			color: var(--muted);
+			font-size: 0.9rem;
+			margin-top: 0.4rem;
+			font-family: 'JetBrains Mono', monospace;
+		}
+
+		.health-pill {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			padding: 0.5rem 1.1rem;
+			border-radius: 50px;
+			border: 1px solid var(--border);
+			background: var(--surface);
+			font-size: 0.82rem;
+			font-weight: 700;
+			font-family: 'JetBrains Mono', monospace;
+			letter-spacing: 0.5px;
+			flex-shrink: 0;
+		}
+
+		.health-pill.up {
+			border-color: rgba(52, 211, 153, 0.4);
+			color: var(--success);
+		}
+
+		.health-pill.down {
+			border-color: rgba(248, 113, 113, 0.4);
+			color: var(--danger);
+		}
+
+		.pulse-dot {
+			width: 10px;
+			height: 10px;
+			border-radius: 50%;
+			flex-shrink: 0;
+		}
+
+		.pulse-dot.up {
+			background: var(--success);
+			box-shadow: 0 0 0 0 var(--success);
+			animation: pulse-green 2s infinite;
+		}
+
+		.pulse-dot.down {
+			background: var(--danger);
+			box-shadow: 0 0 0 0 var(--danger);
+			animation: pulse-red 2s infinite;
+		}
+
+		@keyframes pulse-green {
+			0% {
+				box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.6);
+			}
+
+			70% {
+				box-shadow:
+					0 0 0 8px rgba(52,
+						211,
+						153,
+						0);
+			}
+
+			100% {
+				box-shadow:
+					0 0 0 0 rgba(52,
+						211,
+						153,
+						0);
+			}
+		}
+
+		@keyframes pulse-red {
+			0% {
+				box-shadow: 0 0 0 0 rgba(248, 113, 113, 0.6);
+			}
+
+			70% {
+				box-shadow:
+					0 0 0 8px rgba(248,
+						113,
+						113,
+						0);
+			}
+
+			100% {
+				box-shadow:
+					0 0 0 0 rgba(248,
+						113,
+						113,
+						0);
+			}
+		}
+
+		/* ─── STATS STRIP ─── */
+		.stats-strip {
+			display: grid;
+			grid-template-columns: repeat(3, 1fr);
+			gap: 1rem;
+			margin-bottom: 2.5rem;
+		}
+
+		.stat-box {
+			background: var(--card);
+			border: 1px solid var(--border);
+			border-radius: 12px;
+			padding: 1.1rem 1.25rem;
+			display: flex;
+			flex-direction: column;
+			gap: 4px;
+		}
+
+		.stat-label {
+
+			font-family: var(--font-mono);
+			text-transform: uppercase;
+			letter-spacing: 0.05em;
+
+			font-size: 0.7rem;
+			text-transform: uppercase;
+			color: var(--muted);
+		}
+
+		.stat-value {
+
+			font-family: var(--font-mono);
+			font-weight: 600;
+			letter-spacing: -0.02em;
+
+
+			font-size: 1.75rem;
+			color: var(--accent);
+		}
+
+		/* ─── SEARCH ─── */
+		.search-row {
+			display: flex;
+			align-items: center;
+			gap: 0.75rem;
+			margin-bottom: 2rem;
+			flex-wrap: wrap;
+		}
+
+		.search-wrap {
+			position: relative;
+			flex: 1;
+			min-width: 200px;
+		}
+
+		.search-icon {
+			position: absolute;
+			left: 1rem;
+			top: 50%;
+			transform: translateY(-50%);
+			color: var(--muted);
+			font-size: 14px;
+			pointer-events: none;
+		}
+
+		#searchBox {
+			width: 100%;
+			background: var(--card);
+			border: 1px solid var(--border);
+			padding: 0.75rem 1rem 0.75rem 2.75rem;
+			border-radius: 10px;
+			color: var(--text);
+			font-family: 'JetBrains Mono', monospace;
+			font-size: 0.85rem;
+			outline: none;
+			transition: border-color 0.2s;
+		}
+
+		#searchBox:focus {
+			border-color: var(--accent);
+		}
+
+		#searchBox::placeholder {
+			color: var(--muted);
+		}
+
+		#resultCount {
+			font-size: 0.78rem;
+			color: var(--muted);
+			font-family: 'JetBrains Mono', monospace;
+			white-space: nowrap;
+			flex-shrink: 0;
+		}
+
+		/* ─── CATEGORY SECTION ─── */
+		.cat-section {
+			margin-bottom: 3rem;
+			animation: fadeUp 0.4s ease both;
+		}
+
+		@keyframes fadeUp {
+			from {
+				opacity: 0;
+				transform: translateY(16px);
+			}
+
+			to {
+				opacity: 1;
+				transform: translateY(0);
+			}
+
+		}
+
+		.section-header {
+			display: flex;
+			align-items: center;
+			gap: 12px;
+			margin-bottom: 1.25rem;
+		}
+
+		.section-tag {
+			display: inline-block;
+			padding: 3px 10px;
+			border-radius: 6px;
+			font-size: 0.7rem;
+			font-weight: 700;
+			text-transform: uppercase;
+
+			font-family: var(--font-mono);
+			letter-spacing: 0.05em;
+		}
+
+		.section-tag.jvm-memory {
+			background: rgba(129, 140, 248, 0.15);
+			color: var(--accent2);
+			border: 1px solid rgba(129, 140, 248, 0.3);
+		}
+
+		.section-tag.jvm-threads {
+			background: rgba(129, 140, 248, 0.15);
+			color: var(--accent2);
+			border: 1px solid rgba(129, 140, 248, 0.3);
+		}
+
+		.section-tag.system {
+			background: rgba(251, 191, 36, 0.12);
+			color: var(--warning);
+			border: 1px solid rgba(251, 191, 36, 0.3);
+		}
+
+		.section-tag.http {
+			background: rgba(52, 211, 153, 0.12);
+			color: var(--success);
+			border: 1px solid rgba(52, 211, 153, 0.3);
+		}
+
+		.section-tag.other {
+			background: rgba(100, 116, 139, 0.15);
+			color: var(--muted);
+			border: 1px solid rgba(100, 116, 139, 0.3);
+		}
+
+		.section-title-text {
+			font-size: 1.05rem;
+			font-weight: 800;
+			color: var(--text);
+		}
+
+		.section-count {
+			margin-left: auto;
+			font-size: 0.72rem;
+			color: var(--muted);
+			font-family: 'JetBrains Mono', monospace;
+			background: var(--surface);
+			border: 1px solid var(--border);
+			padding: 2px 8px;
+			border-radius: 5px;
+		}
+
+		/* ─── METRIC GRID ─── */
+		.metric-grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+			gap: 1rem;
+		}
+
+		/* ─── METRIC CARD ─── */
+		.card {
+			background: var(--card);
+			border: 1px solid var(--border);
+			border-radius: 12px;
+			padding: 1.25rem;
+			position: relative;
+			overflow: hidden;
+			transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+			cursor: default;
+		}
+
+		.card::before {
+			content: '';
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 3px;
+			height: 100%;
+			background: var(--accent);
+			opacity: 0;
+			transition: opacity 0.2s;
+		}
+
+		.card:hover {
+			background: var(--card-hover);
+			border-color: var(--border-lit);
+			transform: translateY(-2px);
+			box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+		}
+
+		.card:hover::before {
+			opacity: 1;
+		}
+
+		.m-name {
+			font-size: 0.68rem;
+			color: var(--muted);
+			margin-bottom: 0.6rem;
+			word-break: break-all;
+			line-height: 1.5;
+
+			font-family: var(--font-mono);
+			text-transform: uppercase;
+			letter-spacing: 0.05em;
+		}
+
+		.m-value {
+			font-size: 1.5rem;
+			color: var(--text);
+
+			font-family: var(--font-mono);
+			font-weight: 600;
+			letter-spacing: -0.02em;
+		}
+
+		.m-unit {
+			font-size: 0.75rem;
+			color: var(--muted);
+			font-weight: 400;
+			margin-left: 2px;
+		}
+
+		/* ─── EMPTY STATE ─── */
+		.empty-state {
+			grid-column: 1/-1;
+			text-align: center;
+			padding: 3rem;
+			color: var(--muted);
+			font-family: 'JetBrains Mono', monospace;
+			font-size: 0.85rem;
+			display: none;
+		}
+
+		/* ─── REFRESH BAR ─── */
+		.refresh-bar {
+			position: fixed;
+			bottom: 0;
+			left: var(--sidebar-w);
+			right: 0;
+			height: 3px;
+			background: var(--dim);
+			z-index: 100;
+		}
+
+		.refresh-bar-fill {
+			height: 100%;
+			background: linear-gradient(90deg, var(--accent), var(--accent2));
+			width: 100%;
+			animation: drainBar 60s linear forwards;
+			transform-origin: left;
+		}
+
+		@keyframes drainBar {
+			from {
+				transform: scaleX(1);
+
+			}
+
+			to {
+				transform: scaleX(0);
+			}
+
+		}
+
+		/* ─── UTILITY ─── */
+		.hidden {
+			display: none !important;
+		}
+
+
+
+		/* --- Custom Scrollbar Aesthetics --- */
+
+		/* 1. Global Scrollbar (Chrome, Safari, Edge) */
+		::-webkit-scrollbar {
+			width: 10px;
+			/* Vertical scrollbar width */
+			height: 10px;
+			/* Horizontal scrollbar height */
+		}
+
+		/* The background of the scrollbar area */
+		::-webkit-scrollbar-track {
+			background: var(--bg-dark);
+		}
+
+		/* The draggable handle */
+		::-webkit-scrollbar-thumb {
+			background: linear-gradient(180deg, var(--accent-blue) 0%, var(--accent-purple) 100%);
+			border-radius: 20px;
+			border: 2px solid var(--bg-dark);
+			/* Creates a little space around the handle */
+		}
+
+		::-webkit-scrollbar-thumb:hover {
+			border: 1px solid transparent;
+			background: var(--accent-purple);
+			box-shadow: 0 0 12px rgba(56, 189, 248, 0.5);
+		}
+
+		/* 2. Firefox Support */
+		* {
+			scrollbar-width: thin;
+			scrollbar-color: var(--accent-blue) var(--bg-dark);
+		}
+
+		/* ─── RESPONSIVE ─── */
+		@media (max-width : 900px) {
+			.topbar {
+				display: flex;
+			}
+
+			.sidebar {
+				transform: translateX(calc(-1 * var(--sidebar-w)));
+				top: 0;
+			}
+
+			.sidebar.open {
+				transform: translateX(0);
+			}
+
+			.main {
+				margin-left: 0;
+				padding-top: var(--header-h);
+			}
+
+			.stats-strip {
+				grid-template-columns: repeat(3, 1fr);
+				gap: 0.75rem;
+			}
+
+			.content {
+				padding: 1.5rem 1rem;
+			}
+
+			.refresh-bar {
+				left: 0;
+			}
+		}
+
+		@media (max-width : 600px) {
+			.stats-strip {
+				grid-template-columns: repeat(2, 1fr);
+			}
+
+			.stat-box:last-child {
+				grid-column: 1/-1;
+			}
+
+			.page-header {
+				flex-direction: column;
+			}
+
+			.metric-grid {
+				grid-template-columns: 1fr 1fr;
+			}
+		}
+
+		@media (max-width : 400px) {
+			.metric-grid {
+				grid-template-columns: 1fr;
+			}
+		}
+	</style>
 </head>
+
 <body>
 
-    <div class="sidebar">
-        <div class="logo">
-            <div style="background: var(--accent); width:30px; height:30px; border-radius:6px;"></div>
-            CodeSync Admin
-        </div>
-        <div class="nav-item active" onclick="filterCat('all')">All Metrics</div>
-        <div class="nav-item"
-     th:each="cat : ${categories.keySet()}"
-     th:text="${cat}"
-     th:attr="data-cat=${cat}">
-</div>
-        
-        <div style="position: absolute; bottom: 2rem; width: calc(100% - 3rem);">
-            <div class="nav-item" onclick="location.reload()">Refresh Data</div>
-            <a href="/logout" style="text-decoration: none;"><div class="nav-item" style="color: var(--danger)">Logout</div></a>
-        </div>
-    </div>
+	<!-- ─── MOBILE TOP BAR ─── -->
+	<div class="topbar">
+		<span class="topbar-logo">⬡ CodeSync</span>
+		<button class="hamburger" id="hamburger" onclick="toggleSidebar()" aria-label="Toggle navigation">
+			<span></span><span></span><span></span>
+		</button>
+	</div>
 
-    <div class="main-content">
-        <div class="header">
-            <div>
-                <h1 style="margin:0; font-size: 2.5rem;">System Core</h1>
-                <p style="color: var(--text-dim)">Operational Telemetry for CodeSync Cluster</p>
-            </div>
-            <div class="health-indicator">
-                <div class="dot" th:style="'color:' + (${overallHealth == 'UP'} ? 'var(--success)' : 'var(--danger)')"
-                     th:styleappend="'background-color: currentColor;'"></div>
-                <span th:text="${overallHealth}">UP</span>
-            </div>
-        </div>
+	<!-- ─── OVERLAY ─── -->
+	<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
 
-        <div class="search-container">
-            <input type="text" id="searchBox" placeholder="Filter metrics by name...">
-        </div>
+	<!-- ─── SIDEBAR ─── -->
+	<aside class="sidebar" id="sidebar">
+		<div class="sidebar-inner">
+			<a th:href="@{/admin/dashboard}" class="logo">
+				<div class="logo-icon">⬡</div>
+				<div>
+					<div class="logo-text">CodeSync</div>
+					<div class="logo-sub">Admin Console</div>
+				</div>
+			</a>
 
-        <div th:each="category : ${categories}" class="cat-section" th:id="'sec-' + ${category.key}">
-            <div class="section-title">
-                <span th:text="${category.key}">Category</span>
-                <small style="color: var(--text-dim); font-size: 0.8rem;" th:text="'(' + ${category.value.size()} + ' fields)'"></small>
-            </div>
-            <div class="grid">
-                <div class="card" th:each="entry : ${category.value}" th:data-name="${entry.key}">
-                    <div class="m-name" th:text="${entry.key}">metric.name</div>
-                    <div class="m-value" th:text="${entry.value}">0.00</div>
-                </div>
-            </div>
-        </div>
-    </div>
+			<div class="nav-label">Views</div>
+			<div class="nav-item active" data-cat="all" onclick="filterCat('all', this)">
+				◈ All Metrics <span class="nav-badge" th:text="${totalMetrics}">0</span>
+			</div>
 
-    <script>
-    
-    document.querySelectorAll('.nav-item[data-cat]').forEach(item => {
-        item.addEventListener('click', function () {
-            const catName = this.getAttribute('data-cat');
+			<div class="nav-label">Categories</div>
+			<div th:each="cat : ${categories}" class="nav-item" th:data-cat="${cat.key}" th:text="${cat.key}"
+				onclick="filterCat(this.getAttribute('data-cat'), this)"></div>
+		</div>
 
-            document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
-            this.classList.add('active');
 
-            document.querySelectorAll('.cat-section').forEach(sec => {
-                if (catName === 'all') {
-                    sec.classList.remove('hidden');
-                } else {
-                    sec.id === 'sec-' + catName
-                        ? sec.classList.remove('hidden')
-                        : sec.classList.add('hidden');
-                }
-            });
-        });
-    });
-    
-        // Global Search Functionality
-        const searchBox = document.getElementById('searchBox');
-        const cards = document.querySelectorAll('.card');
+		<div class="sidebar-footer">
+			<button class="btn-sidebar" onclick="location.reload()">↻ &nbsp;Refresh Now</button>
+			<form th:action="@{/logout}" method="post" style="display:inline; margin:0; padding:0;">
+				<button type="submit" class="btn-sidebar danger">→ &nbsp;Logout</button>
+			</form>
+		</div>
+	</aside>
 
-        searchBox.addEventListener('input', (e) => {
-            const query = e.target.value.toLowerCase();
-            cards.forEach(card => {
-                const name = card.getAttribute('data-name').toLowerCase();
-                card.closest('.card').style.display = name.includes(query) ? 'block' : 'none';
-            });
-        });
+	<!-- ─── MAIN CONTENT ─── -->
+	<main class="main">
+		<div class="content">
 
-        // Category Navigation Functionality
-        function filterCat(catName) {
-            // Update Sidebar UI
-            document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
-            event.currentTarget.classList.add('active');
+			<!-- Header -->
+			<div class="page-header">
+				<div>
+					<h1 class="page-title">System Monitor</h1>
+					<div class="page-sub">
+						Last updated: <span th:text="${refreshTime}">—</span>
+					</div>
+				</div>
+				<div class="health-pill" th:classappend="${healthUp} ? 'up' : 'down'">
+					<div class="pulse-dot" th:classappend="${healthUp} ? 'up' : 'down'"></div>
+					<span th:text="${overallHealth}">UP</span>
+				</div>
+			</div>
 
-            // Show/Hide Sections
-            document.querySelectorAll('.cat-section').forEach(sec => {
-                if(catName === 'all') {
-                    sec.classList.remove('hidden');
-                } else {
-                    sec.id === 'sec-' + catName ? sec.classList.remove('hidden') : sec.classList.add('hidden');
-                }
-            });
-        }
+			<!-- Stats Strip -->
+			<div class="stats-strip">
+				<div class="stat-box">
+					<div class="stat-label">Total Metrics</div>
+					<div class="stat-value" th:text="${totalMetrics}">0</div>
+				</div>
+				<div class="stat-box">
+					<div class="stat-label">Categories</div>
+					<div class="stat-value" th:text="${totalCategories}">0</div>
+				</div>
+				<div class="stat-box">
+					<div class="stat-label">Status</div>
+					<div class="stat-value" th:style="${healthUp} ? 'color: var(--success)' : 'color: var(--danger)'"
+						th:text="${healthUp} ? 'OK' : 'ERR'">OK</div>
+				</div>
+			</div>
 
-        // Auto Refresh
-        setTimeout(() => { location.reload(); }, 60000);
-    </script>
+			<!-- Search -->
+			<div class="search-row">
+				<div class="search-wrap">
+					<span class="search-icon">⌕</span> <input type="text" id="searchBox" placeholder="Filter metrics..."
+						autocomplete="off">
+				</div>
+				<span id="resultCount"></span>
+			</div>
+
+			<!-- Metric Sections -->
+			<div th:each="cat : ${categories}" class="cat-section" th:id="'sec-' + ${cat.key}">
+
+				<div class="section-header">
+					<span class="section-tag" th:classappend="${cat.key == 'JVM Memory'} ? 'jvm-memory' :
+                                      (${cat.key == 'JVM Threads'} ? 'jvm-threads' :
+                                      (${cat.key == 'System'} ? 'system' :
+                                      (${cat.key == 'HTTP &amp; Web'} ? 'http' : 'other')))"
+						th:text="${cat.key}">Category</span> <span class="section-title-text"
+						th:text="${cat.key}"></span> <span class="section-count"
+						th:text="${cat.value.size()} + ' metrics'">0 metrics</span>
+				</div>
+
+				<div class="metric-grid">
+					<div class="empty-state" id="empty-state">No metrics match
+						your search.</div>
+					<div class="card" th:each="entry : ${cat.value}" th:data-name="${entry.key}">
+						<div class="m-name" th:text="${entry.key}">metric.name</div>
+						<div class="m-value" th:text="${entry.value}">0</div>
+					</div>
+				</div>
+			</div>
+
+		</div>
+	</main>
+
+	<!-- ─── REFRESH PROGRESS BAR ─── -->
+	<div class="refresh-bar">
+		<div class="refresh-bar-fill"></div>
+	</div>
+
+	<script>
+		/* ── Sidebar toggle (mobile) ── */
+		function toggleSidebar() {
+			const sidebar = document.getElementById('sidebar');
+			const overlay = document.getElementById('overlay');
+			const hamburger = document.getElementById('hamburger');
+			sidebar.classList.toggle('open');
+			overlay.classList.toggle('show');
+			hamburger.classList.toggle('open');
+		}
+
+		function closeSidebar() {
+			document.getElementById('sidebar').classList.remove('open');
+			document.getElementById('overlay').classList.remove('show');
+			document.getElementById('hamburger').classList.remove('open');
+		}
+
+		/* ── Category filter ── */
+		function filterCat(catKey, el) {
+			document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+			if (el) el.classList.add('active');
+
+			document.querySelectorAll('.cat-section').forEach(sec => {
+				if (catKey === 'all') {
+					sec.classList.remove('hidden');
+				} else {
+					sec.id === 'sec-' + catKey
+						? sec.classList.remove('hidden')
+						: sec.classList.add('hidden');
+				}
+			});
+
+			if (window.innerWidth <= 900) closeSidebar();
+		}
+
+		/* ── Search ── */
+		const searchBox = document.getElementById('searchBox');
+		const resultCount = document.getElementById('resultCount');
+
+		searchBox.addEventListener('input', function () {
+			const q = this.value.toLowerCase().trim();
+			let visible = 0;
+
+			document.querySelectorAll('.card').forEach(card => {
+				const name = (card.getAttribute('data-name') || '').toLowerCase();
+				const show = !q || name.includes(q);
+				card.classList.toggle('hidden', !show);
+				if (show) visible++;
+			});
+
+			/* show/hide empty states per section */
+			document.querySelectorAll('.cat-section').forEach(sec => {
+				const hasVisible = [...sec.querySelectorAll('.card')].some(c => !c.classList.contains('hidden'));
+				let empty = sec.querySelector('.empty-state');
+				if (empty) empty.style.display = hasVisible ? 'none' : 'block';
+			});
+
+			resultCount.textContent = q ? visible + ' result' + (visible !== 1 ? 's' : '') : '';
+		});
+
+		/* ── Auto-refresh after 60s ── */
+		setTimeout(() => location.reload(), 60000);
+	</script>
 </body>
+
 </html>
