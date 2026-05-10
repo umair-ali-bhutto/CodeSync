@@ -68,7 +68,7 @@ public class SecurityConfig {
 				.authorizeHttpRequests(auth -> auth
 
 						// Public API's and Logs
-						.requestMatchers("/api/share/*", "/share/*", "/logsService").permitAll()
+						.requestMatchers("/api/share/*", "/api/files/**", "/share/*", "/logsService").permitAll()
 
 						// CRITICAL: login page must be explicitly permitted
 						.requestMatchers("/login", "/login/**").permitAll()

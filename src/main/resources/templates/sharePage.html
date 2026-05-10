@@ -5,132 +5,161 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Code Sync</title>
-
     <link rel="icon" href="https://umair-ali-bhutto.github.io/assets/CodePenIcon/logo.png">
-
-    <!-- ==================== Meta Information ==================== -->
-	<meta name="author" content="Umair Ali Bhutto">
-	<meta property="article:author" content="umair ali bhutto">
-
-	<meta name="description" content="CodeSync is a lightweight, real-time code and text sharing platform inspired by Codeshare.io. Instantly create a shareable URL, collaborate live, and sync code or notes across multiple users with auto-save and near real-time updates." />
-
-	<meta name="copyright" content="© 2025 Umair Ali Bhutto (Just Kidding No Copy Right From Me Is Possible Because Code Is Copied From ChatGPT">
-	<meta name="publisher" content="Umair Ali Bhutto">
-
-	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-	<meta http-equiv="Cache-Control" content="no-cache">
-	<meta http-equiv="Pragma" content="no-cache">
-    
-	<!-- ==================== Open Graph (Facebook, WhatsApp, LinkedIn) ==================== -->
-	<meta property="og:title" content="CodeSync – Real-Time Code Sharing Made Simple">
-	<meta property="og:description" content="CodeSync lets you instantly share code and text using a simple URL. Collaborate in real time with auto-save, live updates, and zero sign-up required.">
-	<meta property="og:type" content="website">
-	<meta property="og:site_name" content="CodeSync">
-
-
-
-	<meta property="og:url" content="http://172.191.1.223:8081/codesync/share/">
-    <!-- THIS WORKS -->
-    <meta property="og:url" th:content="${@environment.getProperty('security.blocked-ips')} + @{/share/}" />
-
-    
-
-	<meta property="og:image" content="https://umair-ali-bhutto.github.io/assets/CodePenIcon/logo.png">
-
-	<!-- ==================== Twitter / X ==================== -->
-	<meta name="twitter:card" content="summary_large_image">
-	<meta name="twitter:title" content="CodeSync – Real-Time Code Sharing">
-	<meta name="twitter:description" content="Instantly share and collaborate on code or text using a simple link. Auto-save, live updates, and no authentication required.">
-	<meta name="twitter:image" content="https://umair-ali-bhutto.github.io/assets/CodePenIcon/logo.png">
-
+    <meta name="author" content="Umair Ali Bhutto">
+    <meta name="description"
+        content="CodeSync is a lightweight, real-time code and text sharing platform. Also supports multi-file sharing." />
+    <meta property="og:title" content="CodeSync – Real-Time Code & File Sharing">
+    <meta property="og:image" content="https://umair-ali-bhutto.github.io/assets/CodePenIcon/logo.png">
     <meta name="theme-color" content="#ffffff">
-    <meta name="application-name" content="Code Sync" />
-    
-    <meta name="keywords" content="umair-ali-bhutto, umair ali bhutto, umair, ali, bhutto, CodeSync, HTML, CSS, JavaScript, Web Development, Umair Ali Bhutto, Frontend Development, JavaScript Animations, CSS3, HTML5, Responsive Design, Web Design Inspiration, Code Sharing, codeshare, User Interface, UI Design, UX Design, Design Patterns, Developer Tools, Open Source, Github, github, GitHub Pages, Portfolio, code snippets, interactive web design, modern web development, coding skills, front-end tutorials, web projects, web animations, CSS grid, flexbox, JavaScript libraries, HTML5 canvas, DOM manipulation, web effects, animations, beginner projects, JAVA, web developer resources, showcase, design showcase, creative portfolio, JavaScript coding practices, CSS techniques, web trends, coding exercises, learn to code, web engineering, modern coding practices, tech community, personal project, website showcase, software engineering, front-end engineering, digital creativity, open web, developer showcase, community code, online coding, creative tech, web prototypes, design portfolio">
-    
-    <meta name="msapplication-TileColor" content="#ffffff" />
-    <meta name="msapplication-TileImage" content="https://umair-ali-bhutto.github.io/assets/CodePenIcon/logo.png" />
-    
-    
+
     <style>
-        /* -------------------- Global -------------------- */
         :root {
-            --bg-light: #f5f5f5;
-            --bg-dark: #1e1e2f;
+            --bg-light: #f0f2f5;
+            --bg-dark: #12121e;
             --text-light: #111;
-            --text-dark: #f0f0f0;
-            --accent:  #005b8a;
-            --editor-bg-light: #fff;
-            --editor-bg-dark: #2b2b3d;
-            --shadow: rgba(0, 0, 0, 0.2);
-            --transition-speed: 0.3s;
+            --text-dark: #e8e8f0;
+            --accent: #005b8a;
+            --accent-hover: #0077b6;
+            --editor-bg-light: #ffffff;
+            --editor-bg-dark: #1c1c2e;
+            --card-light: #ffffff;
+            --card-dark: #1e1e30;
+            --border-light: #dde1ea;
+            --border-dark: #2e2e45;
+            --shadow: rgba(0, 0, 0, 0.12);
+            --shadow-dark: rgba(0, 0, 0, 0.45);
+            --tab-active-light: #005b8a;
+            --tab-active-dark: #0077b6;
+            --danger: #e05252;
+            --success: #27ae60;
+            --warn: #e08c00;
+            --transition: 0.25s ease;
+            --radius: 10px;
+            --file-drop-light: #f7faff;
+            --file-drop-dark: #181828;
         }
 
-        * {
+        *,
+        *::before,
+        *::after {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         }
 
         body {
-            background-color: var(--bg-light);
+            background: var(--bg-light);
             color: var(--text-light);
             display: flex;
             flex-direction: column;
-            height: 100vh;
-            transition: background-color var(--transition-speed), color var(--transition-speed);
+            min-height: 100vh;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            transition: background var(--transition), color var(--transition);
         }
 
-        /* -------------------- Header -------------------- */
+        /* ---- Header ---- */
         header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0.5rem 1rem;
-            background-color: var(--editor-bg-light);
-            box-shadow: 0 2px 5px var(--shadow);
-            transition: background-color var(--transition-speed);
+            padding: 0.55rem 1.2rem;
+            background: var(--card-light);
+            box-shadow: 0 2px 8px var(--shadow);
+            transition: background var(--transition);
+            z-index: 10;
+            flex-wrap: wrap;
+            gap: 0.5rem;
         }
 
-        header .left {
+        .header-left {
             display: flex;
             align-items: center;
-            gap: 0.8rem;
+            gap: 0.75rem;
+            flex-wrap: wrap;
         }
 
         .logo {
-            width: 150px;
+            padding: 0 14px;
             height: 32px;
-            background-color: var(--accent);
-            border-radius: 6px;
+            background: var(--accent);
+            border-radius: 7px;
             display: flex;
             align-items: center;
-            justify-content: center;
-            font-weight: bold;
+            font-weight: 700;
             color: #fff;
-            user-select: none;
+            font-size: 1rem;
+            letter-spacing: 0.03em;
+            white-space: nowrap;
         }
 
         .api-name {
-            font-weight: 500;
-            font-size: 1rem;
+            font-size: 0.9rem;
+            color: #666;
         }
 
-        header .right {
+        body.dark .api-name {
+            color: #888;
+        }
+
+        .header-right {
             display: flex;
             align-items: center;
-            gap: 1rem;
+            gap: 0.75rem;
+            flex-wrap: wrap;
         }
 
+        #status-display {
+            font-weight: 600;
+            font-size: 0.85rem;
+            min-width: 80px;
+        }
+
+        .btn {
+            padding: 5px 12px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            background: var(--accent);
+            color: #fff;
+            font-size: 0.85rem;
+            font-weight: 500;
+            box-shadow: 0 2px 5px var(--shadow);
+            transition: transform 0.12s, opacity 0.12s, background 0.15s;
+            white-space: nowrap;
+        }
+
+        .btn:hover {
+            opacity: 0.88;
+            transform: translateY(-1px);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn.danger {
+            background: var(--danger);
+        }
+
+        .btn.secondary {
+            background: #555;
+        }
+
+        body.dark .btn.secondary {
+            background: #444;
+        }
+
+        /* Toggle */
         .toggle {
             cursor: pointer;
-            width: 50px;
-            height: 24px;
+            width: 46px;
+            height: 22px;
             background: #ccc;
             border-radius: 12px;
             position: relative;
-            transition: background var(--transition-speed);
+            transition: background var(--transition);
+            flex-shrink: 0;
         }
 
         .toggle::before {
@@ -138,11 +167,11 @@
             position: absolute;
             top: 2px;
             left: 2px;
-            width: 20px;
-            height: 20px;
+            width: 18px;
+            height: 18px;
             background: #fff;
             border-radius: 50%;
-            transition: transform var(--transition-speed);
+            transition: transform var(--transition);
         }
 
         .toggle.active {
@@ -150,19 +179,20 @@
         }
 
         .toggle.active::before {
-            transform: translateX(26px);
+            transform: translateX(24px);
         }
 
         /* Loader */
         .loader {
-            border: 3px solid rgba(0, 0, 0, 0.2);
+            border: 3px solid rgba(0, 0, 0, 0.15);
             border-top: 3px solid var(--accent);
             border-radius: 50%;
             width: 20px;
             height: 20px;
-            animation: spin 1s linear infinite;
+            animation: spin 0.8s linear infinite;
             opacity: 0;
-            transition: opacity var(--transition-speed);
+            transition: opacity 0.2s;
+            flex-shrink: 0;
         }
 
         .loader.active {
@@ -175,95 +205,581 @@
             }
         }
 
-        /* -------------------- Editor -------------------- */
+        /* ---- Tabs ---- */
+        .tabs-wrapper {
+            background: var(--card-light);
+            border-bottom: 2px solid var(--border-light);
+            padding: 0 1.2rem;
+            display: flex;
+            gap: 0;
+            transition: background var(--transition), border-color var(--transition);
+        }
+
+        body.dark .tabs-wrapper {
+            background: var(--card-dark);
+            border-color: var(--border-dark);
+        }
+
+        .tab-btn {
+            padding: 0.7rem 1.4rem;
+            border: none;
+            border-bottom: 3px solid transparent;
+            background: none;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #888;
+            margin-bottom: -2px;
+            transition: color 0.2s, border-color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .tab-btn.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+
+        body.dark .tab-btn {
+            color: #666;
+        }
+
+        body.dark .tab-btn.active {
+            color: #4db8ff;
+            border-bottom-color: #4db8ff;
+        }
+
+        /* ---- Tab Panels ---- */
+        .tab-panel {
+            display: none;
+            flex: 1;
+            flex-direction: column;
+        }
+
+        .tab-panel.active {
+            display: flex;
+        }
+
+        /* ---- Code Tab ---- */
         .editor-container {
             flex: 1;
             padding: 1rem;
+            display: flex;
+            flex-direction: column;
         }
 
         #editor {
+            flex: 1;
             width: 100%;
-            height: 100%;
+            min-height: 300px;
             padding: 1rem;
-            font-family: 'Courier New', monospace;
-            font-size: 17px;
-            border-radius: 10px;
-            border: 1px solid #444;
-            background-color: var(--editor-bg-light);
+            font-family: 'Courier New', 'Cascadia Code', monospace;
+            font-size: 15px;
+            border-radius: var(--radius);
+            border: 1.5px solid var(--border-light);
+            background: var(--editor-bg-light);
             color: var(--text-light);
-            resize: none;
-            box-shadow: 0 4px 10px var(--shadow);
+            resize: vertical;
+            box-shadow: 0 3px 12px var(--shadow);
             outline: none;
-            transition: background-color var(--transition-speed), color var(--transition-speed), border var(--transition-speed), box-shadow var(--transition-speed);
+            line-height: 1.6;
+            transition: background var(--transition), color var(--transition), border-color var(--transition);
         }
 
         #editor:focus {
             border-color: var(--accent);
-            box-shadow: 0 0 12px var(--accent);
-        }
-
-        /* -------------------- Dark Mode -------------------- */
-        body.dark {
-            background-color: var(--bg-dark);
-            color: var(--text-dark);
-        }
-
-        body.dark header {
-            background-color: #2b2b3d;
+            box-shadow: 0 0 0 3px rgba(0, 91, 138, 0.15);
         }
 
         body.dark #editor {
-            background-color: var(--editor-bg-dark);
+            background: var(--editor-bg-dark);
             color: var(--text-dark);
-            border-color: #555;
+            border-color: var(--border-dark);
         }
 
-        /* -------------------- Responsive -------------------- */
-        @media(max-width: 600px) {
-            header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 0.5rem;
+        body.dark #editor:focus {
+            box-shadow: 0 0 0 3px rgba(0, 119, 182, 0.2);
+        }
+
+        /* ---- Code Tab toolbar ---- */
+        .code-toolbar {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            padding: 0.5rem 1rem 0;
+            align-items: center;
+        }
+
+        /* ---- File Tab ---- */
+        .files-container {
+            flex: 1;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            overflow-y: auto;
+        }
+
+        /* Drop Zone */
+        .drop-zone {
+            border: 2.5px dashed var(--accent);
+            border-radius: var(--radius);
+            background: var(--file-drop-light);
+            padding: 2.5rem 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s, transform 0.15s;
+            position: relative;
+        }
+
+        body.dark .drop-zone {
+            background: var(--file-drop-dark);
+            border-color: #3a6fa0;
+        }
+
+        .drop-zone:hover,
+        .drop-zone.dragover {
+            background: #e8f4fd;
+            border-color: var(--accent-hover);
+            transform: scale(1.005);
+        }
+
+        body.dark .drop-zone:hover,
+        body.dark .drop-zone.dragover {
+            background: #1a2535;
+        }
+
+        .drop-zone input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+            width: 100%;
+            height: 100%;
+        }
+
+        .drop-zone-icon {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .drop-zone h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        .drop-zone p {
+            font-size: 0.82rem;
+            color: #888;
+            margin-top: 0.3rem;
+        }
+
+        /* Upload Queue */
+        .upload-queue {
+            background: var(--card-light);
+            border-radius: var(--radius);
+            border: 1px solid var(--border-light);
+            overflow: hidden;
+            box-shadow: 0 2px 8px var(--shadow);
+            display: none;
+        }
+
+        body.dark .upload-queue {
+            background: var(--card-dark);
+            border-color: var(--border-dark);
+        }
+
+        .upload-queue.visible {
+            display: block;
+        }
+
+        .upload-queue-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border-light);
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        body.dark .upload-queue-header {
+            border-color: var(--border-dark);
+        }
+
+        .upload-queue-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .queue-list {
+            list-style: none;
+        }
+
+        .queue-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.6rem 1rem;
+            border-bottom: 1px solid var(--border-light);
+            font-size: 0.88rem;
+            animation: slideIn 0.2s ease;
+        }
+
+        body.dark .queue-item {
+            border-color: var(--border-dark);
+        }
+
+        .queue-item:last-child {
+            border-bottom: none;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-6px);
             }
 
-            .right {
-                gap: 0.5rem;
+            to {
+                opacity: 1;
+                transform: none;
             }
         }
 
-        /* -------------------- Share Button -------------------- */
-        .share-btn {
-            padding: 6px 12px;
-            border-radius: 6px;
+        .queue-file-icon {
+            font-size: 1.3rem;
+            flex-shrink: 0;
+        }
+
+        .queue-file-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .queue-file-name {
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .queue-file-size {
+            font-size: 0.75rem;
+            color: #888;
+        }
+
+        .queue-file-status {
+            font-size: 0.8rem;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .queue-file-status.uploading {
+            color: var(--accent);
+        }
+
+        .queue-file-status.done {
+            color: var(--success);
+        }
+
+        .queue-file-status.error {
+            color: var(--danger);
+        }
+
+        .queue-remove-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #aaa;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+            padding: 2px 6px;
+            border-radius: 4px;
+            transition: color 0.15s, background 0.15s;
+        }
+
+        .queue-remove-btn:hover {
+            color: var(--danger);
+            background: #ffeaea;
+        }
+
+        /* File List */
+        .file-list-section {
+            background: var(--card-light);
+            border-radius: var(--radius);
+            border: 1px solid var(--border-light);
+            overflow: hidden;
+            box-shadow: 0 2px 8px var(--shadow);
+        }
+
+        body.dark .file-list-section {
+            background: var(--card-dark);
+            border-color: var(--border-dark);
+        }
+
+        .file-list-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border-light);
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        body.dark .file-list-header {
+            border-color: var(--border-dark);
+        }
+
+        .file-list {
+            list-style: none;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.65rem 1rem;
+            border-bottom: 1px solid var(--border-light);
+            font-size: 0.88rem;
+            transition: background 0.15s;
+        }
+
+        .file-item:last-child {
+            border-bottom: none;
+        }
+
+        .file-item:hover {
+            background: rgba(0, 91, 138, 0.04);
+        }
+
+        body.dark .file-item {
+            border-color: var(--border-dark);
+        }
+
+        body.dark .file-item:hover {
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .file-icon {
+            font-size: 1.3rem;
+            flex-shrink: 0;
+        }
+
+        .file-meta {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .file-name {
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: var(--accent);
+        }
+
+        body.dark .file-name {
+            color: #4db8ff;
+        }
+
+        .file-info {
+            font-size: 0.75rem;
+            color: #888;
+            margin-top: 1px;
+        }
+
+        .file-actions {
+            display: flex;
+            gap: 0.4rem;
+            flex-shrink: 0;
+        }
+
+        .file-dl-btn {
+            padding: 4px 10px;
+            border-radius: 5px;
             border: none;
             cursor: pointer;
             background: var(--accent);
             color: #fff;
-            font-size: 0.9rem;
-            font-weight: 500;
-            box-shadow: 0 2px 6px var(--shadow);
-            transition: transform 0.15s ease, opacity 0.15s ease;
+            font-size: 0.78rem;
+            font-weight: 600;
+            transition: opacity 0.15s, transform 0.12s;
         }
 
-        .share-btn:hover {
-            opacity: 0.9;
+        .file-dl-btn:hover {
+            opacity: 0.85;
             transform: translateY(-1px);
         }
 
-        .share-btn:active {
-            transform: translateY(0);
+        .file-del-btn {
+            padding: 4px 8px;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            background: transparent;
+            color: #aaa;
+            font-size: 0.85rem;
+            transition: color 0.15s, background 0.15s;
         }
 
-        body.dark .share-btn {
-            background: var(--accent);
+        .file-del-btn:hover {
+            color: var(--danger);
+            background: #ffeaea;
         }
-        
-        /* -------------------- FOOTER -------------------- */
-        
-        .footer {
-       		margin-bottom: 5px;
-    		margin-left: 5px;
-    		font-size: small;
+
+        /* empty state */
+        .files-empty {
+            text-align: center;
+            padding: 2rem;
+            color: #aaa;
+            font-size: 0.9rem;
+        }
+
+        .files-empty-icon {
+            font-size: 2.5rem;
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Progress bar */
+        .progress-bar-wrap {
+            height: 4px;
+            background: #eee;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+
+        body.dark .progress-bar-wrap {
+            background: #333;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: var(--accent);
+            border-radius: 2px;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        /* Size warning badge */
+        .size-warn {
+            display: inline-block;
+            margin-left: 6px;
+            font-size: 0.7rem;
+            color: #fff;
+            background: var(--warn);
+            border-radius: 3px;
+            padding: 1px 5px;
+        }
+
+        /* ---- Dark Mode overrides ---- */
+        body.dark {
+            background: var(--bg-dark);
+            color: var(--text-dark);
+        }
+
+        body.dark header {
+            background: #1c1c2e;
+            box-shadow: 0 2px 8px var(--shadow-dark);
+        }
+
+        /* ---- Footer ---- */
+        footer {
+            padding: 0.4rem 1rem;
+            font-size: 0.78rem;
+            color: #888;
+        }
+
+        footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* ---- Responsive ---- */
+        @media(max-width: 640px) {
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .header-right {
+                gap: 0.5rem;
+            }
+
+            .btn {
+                font-size: 0.8rem;
+                padding: 5px 9px;
+            }
+
+            .tab-btn {
+                padding: 0.6rem 0.9rem;
+                font-size: 0.85rem;
+            }
+        }
+
+        /* ---- Download-all progress overlay ---- */
+        .dl-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.45);
+            z-index: 999;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .dl-overlay.visible {
+            display: flex;
+        }
+
+        .dl-box {
+            background: var(--card-light);
+            border-radius: 12px;
+            padding: 2rem 2.5rem;
+            text-align: center;
+            min-width: 260px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        body.dark .dl-box {
+            background: var(--card-dark);
+        }
+
+        .dl-box h3 {
+            margin-bottom: 1rem;
+            font-size: 1rem;
+        }
+
+        .dl-progress-wrap {
+            height: 8px;
+            background: #eee;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 0.75rem;
+        }
+
+        body.dark .dl-progress-wrap {
+            background: #333;
+        }
+
+        .dl-progress-fill {
+            height: 100%;
+            background: var(--accent);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .dl-status {
+            font-size: 0.82rem;
+            color: #888;
         }
     </style>
 </head>
@@ -271,300 +787,524 @@
 <body>
 
     <header role="banner">
-        <div class="left">
+        <div class="header-left">
             <div class="logo">Code Sync</div>
-            <div class="api-name" id="api-name">URL Opened: /[[${shareKey}]]
-            </div>
+            <div class="api-name" id="api-name">Key: /[[${shareKey}]]</div>
         </div>
-
-        <div class="right">
-        <div id="status-display" style="margin-left:10px; font-weight:bold;"></div>
-        
-            <button class="share-btn" id="clear-text-btn">🧹 Clear</button>
-            <button class="share-btn" id="share-btn">🔗 Share</button>
-            <button class="share-btn" id="copy-text-btn">📋 Copy Text</button>
+        <div class="header-right">
+            <div id="status-display"></div>
+            <!-- Code tab buttons (shown/hidden by JS) -->
+            <button class="btn" id="clear-text-btn" style="display:none">🧹 Clear</button>
+            <button class="btn" id="share-btn" style="display:none">🔗 Share URL</button>
+            <button class="btn" id="copy-text-btn" style="display:none">📋 Copy Text</button>
+            <!-- File tab buttons -->
+            <button class="btn" id="dl-all-btn" style="display:none">⬇️ Download All</button>
             <div class="loader" id="loader"></div>
-            <div class="toggle" id="mode-toggle"></div>
+            <div class="toggle" id="mode-toggle" title="Toggle dark/light mode"></div>
         </div>
     </header>
 
-
-	<main role="main">
-	</main>
-
-    <div class="editor-container">
-        <textarea id="editor" spellcheck="false" aria-label="text editor" placeholder="Write Here"></textarea>
+    <!-- Tabs -->
+    <div class="tabs-wrapper">
+        <button class="tab-btn active" id="tab-code" onclick="switchTab('code')">
+            <span>💻</span> Code / Text
+        </button>
+        <button class="tab-btn" id="tab-files" onclick="switchTab('files')">
+            <span>📁</span> Files
+        </button>
     </div>
-    
-  
 
-<footer role="contentinfo" class="footer">
-    <p>
-        @ 2026-04-08 🛠️ V-1.1.6 (Coded By 
-        <a href="mailto:umair.ali@access.net.pk"><b>Umair Ali Bhutto</b></a> 😎) | 
-        <a href="https://github.com/umair-ali-bhutto/codesync" target="_blank">GitHub</a>
-    </p>
-</footer>
+    <main role="main" style="display:flex;flex-direction:column;flex:1;">
 
-<script>
-/* -------------------- Dark/Light Mode -------------------- */
-const toggle = document.getElementById('mode-toggle');
-toggle.addEventListener('click', () => {
-    document.body.classList.toggle('dark');
-    toggle.classList.toggle('active');
-});
+        <!-- ===== CODE TAB ===== -->
+        <div class="tab-panel active" id="panel-code">
+            <div class="editor-container">
+                <textarea id="editor" spellcheck="false" aria-label="text editor"
+                    placeholder="Write code or text here…"></textarea>
+            </div>
+        </div>
 
-/* -------------------- Loader -------------------- */
-const loader = document.getElementById('loader');
-function showLoader() { loader.classList.add('active'); }
-function hideLoader() { loader.classList.remove('active'); }
+        <!-- ===== FILES TAB ===== -->
+        <div class="tab-panel" id="panel-files">
+            <div class="files-container">
 
+                <!-- Drop Zone -->
+                <div class="drop-zone" id="drop-zone">
+                    <input type="file" id="file-input" multiple accept="*/*">
+                    <div class="drop-zone-icon">☁️</div>
+                    <h3>Drop files here or click to browse</h3>
+                    <p>Max 100 MB per file &nbsp;•&nbsp; Multiple files supported</p>
+                </div>
 
-/* -------------------- HTTP Status Display -------------------- */
-const statusDisplay = document.getElementById("status-display");
+                <!-- Upload Queue -->
+                <div class="upload-queue" id="upload-queue">
+                    <div class="upload-queue-header">
+                        <span>📤 Upload Queue</span>
+                        <div class="upload-queue-actions">
+                            <button class="btn" id="upload-all-btn">⬆️ Upload All</button>
+                            <button class="btn secondary" id="clear-queue-btn">✖ Clear</button>
+                        </div>
+                    </div>
+                    <ul class="queue-list" id="queue-list"></ul>
+                </div>
 
-// Configure messages and colors per HTTP status
-const statusConfig = {
-    200: { text: "✅ Success.", color: "green" },
-    400: { text: "⚠️ Bad Request", color: "orange" },
-    401: { text: "⚠️ Unauthorized", color: "orange" },
-    403: { text: "🚫 Forbidden", color: "red" },
-    404: { text: "❌ Not Found", color: "red" },
-    429: { text: "❌ Too Many Requests", color: "red" },
-    500: { text: "💥 Server Error o7", color: "darkred" },
-    0:   { text: "❌ Error", color: "red" } 
-};
+                <!-- Uploaded Files List -->
+                <div class="file-list-section" id="file-list-section">
+                    <div class="file-list-header">
+                        <span>📂 Shared Files</span>
+                        <span id="file-count-badge" style="font-size:0.8rem;color:#888;font-weight:400;"></span>
+                    </div>
+                    <ul class="file-list" id="file-list">
+                        <li class="files-empty" id="files-empty-state">
+                            <span class="files-empty-icon">📭</span>
+                            No files shared yet. Upload some above!
+                        </li>
+                    </ul>
+                </div>
 
-/**
- * Show HTTP / network status with context
- * @param {number|Error} statusOrError - HTTP status code or Error object
- * @param {string} context - Optional: where this status came from ('load', 'poll', 'save', 'clear', etc.)
- */
-function showStatus(statusOrError, context = "") {
-    const statusDisplay = document.getElementById("status-display");
-    let cfg;
-    
-    // HTTP Status codes
-    if (typeof statusOrError === "number") {
-        cfg = statusConfig[statusOrError] || { text: `Status: ${statusOrError}`, color: "blue" };
-    } 
-    else {
-        cfg = statusConfig[0]; // fallback
-    }
+            </div>
+        </div>
 
-    // Customize text based on context
-    let contextPrefix = "";
-    switch (context) {
-        case "load":
-            contextPrefix = "📥 Loaded: ";
-            break;
-        case "poll":
-            contextPrefix = "🔄 Poll: ";
-            break;
-        case "save":
-            contextPrefix = "💾 Saved: ";
-            break;
-        case "clear":
-            contextPrefix = "🧹 Cleared: ";
-            break;
-        default:
-            contextPrefix = "";
-    }
+    </main>
 
-    statusDisplay.textContent = contextPrefix + cfg.text;
-    statusDisplay.style.color = cfg.color;
-    
-    setTimeout(() => {
-       statusDisplay.textContent = "";
-    }, 800);
-}
+    <!-- Download All Overlay -->
+    <div class="dl-overlay" id="dl-overlay">
+        <div class="dl-box">
+            <h3>⬇️ Downloading Files…</h3>
+            <div class="dl-progress-wrap">
+                <div class="dl-progress-fill" id="dl-progress-fill"></div>
+            </div>
+            <div class="dl-status" id="dl-status">Preparing…</div>
+        </div>
+    </div>
 
-/* -------------------- Editor & Auto Save -------------------- */
-const editor = document.getElementById("editor");
-const shareKey = "[[${shareKey}]]";
-const apiUrl = "/codesync/api/share/" + shareKey;
+    <footer role="contentinfo">
+        <p>@ 2026 🛠️ V-2.0.0 (Coded By <a href="mailto:umair.ali@access.net.pk"><b>Umair Ali Bhutto</b></a> 😎) |
+            <a href="https://github.com/umair-ali-bhutto/codesync" target="_blank">GitHub</a>
+        </p>
+    </footer>
 
-let debounceTimer;
-let lastContent = "";
-let userTyping = false;
-
-/* Initial load */
-showLoader();
-fetch(apiUrl)
-    .then(r => {
-        showStatus(r.status, "load");  // show HTTP status here
-        return r.text();
-    })
-    .then(t => {
-        editor.value = t;
-        lastContent = t;
-    })
-    .catch(err => { 
-        console.error(err);
-        showStatus(0, "load"); // network error
-    })
-    .finally(hideLoader);
-
-/* Auto-save (debounced) */
-editor.addEventListener("input", function () {
-    userTyping = true;
-    clearTimeout(debounceTimer);
-
-    debounceTimer = setTimeout(() => {
-        showLoader();
-        fetch(apiUrl, {
-            method: "POST",
-            headers: { "Content-Type": "text/plain" },
-            body: editor.value
-        })
-        .then(r => showStatus(r.status, "save"))
-        .then(() => { lastContent = editor.value; })
-        .catch(err => { console.error("Save failed:", err); showStatus(0, "save"); })
-        .finally(() => { userTyping = false; hideLoader(); });
-    }, 1000);
-});
-</script>
-
-<script>
-/* -------------------- NORMAL POLLING -------------------- */
-let pollInProgress = false;
-let pollTimer = null;
-
-function poll() {
-	 if (userTyping || pollInProgress) {
-	        pollTimer = setTimeout(poll, 3000);
-	        return;
-	  }
-	 
-
-    pollInProgress = true;
-    showLoader();
-
-    fetch(apiUrl)
-    	.then(r => {
-        	showStatus(r.status, "poll");
-        	if (!r.ok) throw new Error(r.status);
-        	return r.text();
-    	})
-        .then(t => { if (t !== lastContent) { editor.value = t; lastContent = t; } })
-        .catch(err => { console.error("Polling error:", err); showStatus(0, "poll"); })
-        .finally(() => { pollInProgress = false; hideLoader(); pollTimer = setTimeout(poll, 3000); });
-}
-poll();
-</script>
- 
+    <!-- ===================== SCRIPTS ===================== -->
     <script>
-        /* -------------------- Share URL -------------------- */
+        /* ---- Constants ---- */
+        const shareKey = "[[${shareKey}]]";
+        const apiUrl = "/codesync/api/share/" + shareKey;
+        const fileApiUrl = "/codesync/api/files/" + shareKey;
+        const MAX_FILE_BYTES = 100 * 1024 * 1024; // 100 MB
+
+        /* ---- Dark/Light Mode ---- */
+        const toggle = document.getElementById('mode-toggle');
+        toggle.addEventListener('click', () => {
+            document.body.classList.toggle('dark');
+            toggle.classList.toggle('active');
+        });
+
+        /* ---- Loader ---- */
+        const loader = document.getElementById('loader');
+        function showLoader() { loader.classList.add('active'); }
+        function hideLoader() { loader.classList.remove('active'); }
+
+        /* ---- Status Display ---- */
+        const statusDisplay = document.getElementById("status-display");
+        const statusConfig = {
+            200: { text: "✅ Success", color: "var(--success)" },
+            400: { text: "⚠️ Bad Request", color: "var(--warn)" },
+            401: { text: "⚠️ Unauthorized", color: "var(--warn)" },
+            403: { text: "🚫 Forbidden", color: "var(--danger)" },
+            404: { text: "❌ Not Found", color: "var(--danger)" },
+            413: { text: "⚠️ File Too Large", color: "var(--warn)" },
+            429: { text: "❌ Too Many Requests", color: "var(--danger)" },
+            500: { text: "💥 Server Error", color: "darkred" },
+            0: { text: "❌ Network Error", color: "var(--danger)" }
+        };
+        let statusTimer = null;
+        function showStatus(statusOrError, context = "") {
+            if (statusTimer) clearTimeout(statusTimer);
+            const cfg = (typeof statusOrError === "number")
+                ? (statusConfig[statusOrError] || { text: `HTTP ${statusOrError}`, color: "#4a90e2" })
+                : statusConfig[0];
+            const prefix = { load: "📥 ", poll: "🔄 ", save: "💾 ", clear: "🧹 ", upload: "📤 ", delete: "🗑️ " }[context] || "";
+            statusDisplay.textContent = prefix + cfg.text;
+            statusDisplay.style.color = cfg.color;
+            statusTimer = setTimeout(() => { statusDisplay.textContent = ""; }, 1200);
+        }
+
+        /* ======================================================
+           TAB SWITCHING
+           ====================================================== */
+        let currentTab = 'code';
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.getElementById('panel-code').classList.toggle('active', tab === 'code');
+            document.getElementById('panel-files').classList.toggle('active', tab === 'files');
+            document.getElementById('tab-code').classList.toggle('active', tab === 'code');
+            document.getElementById('tab-files').classList.toggle('active', tab === 'files');
+
+            // Toggle header buttons
+            const codeButtons = ['clear-text-btn', 'share-btn', 'copy-text-btn'];
+            const fileButtons = ['dl-all-btn'];
+            codeButtons.forEach(id => document.getElementById(id).style.display = (tab === 'code' ? '' : 'none'));
+            fileButtons.forEach(id => document.getElementById(id).style.display = (tab === 'files' ? '' : 'none'));
+
+            if (tab === 'files') loadFileList();
+        }
+        // init: show code buttons
+        switchTab('code');
+
+        /* ======================================================
+           CODE TAB — existing logic (unchanged)
+           ====================================================== */
+        const editor = document.getElementById("editor");
+        let debounceTimer, lastContent = "", userTyping = false;
+
+        showLoader();
+        fetch(apiUrl)
+            .then(r => { showStatus(r.status, "load"); return r.text(); })
+            .then(t => { editor.value = t; lastContent = t; })
+            .catch(() => showStatus(0, "load"))
+            .finally(hideLoader);
+
+        editor.addEventListener("input", function () {
+            userTyping = true;
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                showLoader();
+                fetch(apiUrl, { method: "POST", headers: { "Content-Type": "text/plain" }, body: editor.value })
+                    .then(r => showStatus(r.status, "save"))
+                    .then(() => { lastContent = editor.value; })
+                    .catch(() => showStatus(0, "save"))
+                    .finally(() => { userTyping = false; hideLoader(); });
+            }, 1000);
+        });
+
+        /* Polling */
+        let pollInProgress = false, pollTimer = null;
+        function poll() {
+            if (currentTab !== 'code') { pollTimer = setTimeout(poll, 3000); return; }
+            if (userTyping || pollInProgress) { pollTimer = setTimeout(poll, 3000); return; }
+            pollInProgress = true; showLoader();
+            fetch(apiUrl)
+                .then(r => { showStatus(r.status, "poll"); if (!r.ok) throw new Error(r.status); return r.text(); })
+                .then(t => { if (t !== lastContent) { editor.value = t; lastContent = t; } })
+                .catch(() => showStatus(0, "poll"))
+                .finally(() => { pollInProgress = false; hideLoader(); pollTimer = setTimeout(poll, 3000); });
+        }
+        poll();
+
+        /* Share URL */
         const shareBtn = document.getElementById("share-btn");
         const shareUrl = window.location.origin + "/codesync/share/" + shareKey;
-
         function copyTextFallback(text) {
-            const tempInput = document.createElement("textarea");
-            tempInput.value = text;
-            tempInput.style.position = "fixed"; // prevent scroll jump
-            tempInput.style.opacity = "0";
-            document.body.appendChild(tempInput);
-            tempInput.select();
-            document.execCommand("copy");
-            document.body.removeChild(tempInput);
+            const t = document.createElement("textarea");
+            t.value = text; t.style.cssText = "position:fixed;opacity:0;";
+            document.body.appendChild(t); t.select(); document.execCommand("copy"); document.body.removeChild(t);
         }
-
         shareBtn.addEventListener("click", async () => {
             try {
-                if (navigator.clipboard && navigator.clipboard.writeText) {
-                    await navigator.clipboard.writeText(shareUrl);
-                } else {
-                    copyTextFallback(shareUrl);
-                }
-
+                if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(shareUrl);
+                else copyTextFallback(shareUrl);
                 shareBtn.textContent = "✅ Copied!";
-                setTimeout(() => shareBtn.textContent = "🔗 Share", 1500);
-
-            } catch (err) {
-                console.error("Clipboard failed:", err);
-                alert("Copy failed. Please copy manually:\n" + shareUrl);
-            }
+                setTimeout(() => shareBtn.textContent = "🔗 Share URL", 1500);
+            } catch { alert("Copy failed. Share URL:\n" + shareUrl); }
         });
-    </script>
 
-<script>
-/* -------------------- Copy Editor Text -------------------- */
-const copyTextBtn = document.getElementById("copy-text-btn");
+        /* Copy Text */
+        document.getElementById("copy-text-btn").addEventListener("click", async () => {
+            if (!editor.value) { alert("Nothing to copy!"); return; }
+            try {
+                if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(editor.value);
+                else copyTextFallback(editor.value);
+                document.getElementById("copy-text-btn").textContent = "✅ Copied!";
+                setTimeout(() => document.getElementById("copy-text-btn").textContent = "📋 Copy Text", 1500);
+            } catch { alert("Copy failed."); }
+        });
 
-copyTextBtn.addEventListener("click", async () => {
-    const textToCopy = editor.value;
+        /* Clear */
+        document.getElementById("clear-text-btn").addEventListener("click", async () => {
+            if (!editor.value.trim()) return;
+            if (!confirm("Clear all text?")) return;
+            clearTimeout(pollTimer); pollInProgress = true; showLoader();
+            await fetch(apiUrl, { method: "POST", headers: { "Content-Type": "text/plain" }, body: "" })
+                .then(r => showStatus(r.status, "clear"))
+                .catch(() => showStatus(0, "clear"));
+            editor.value = ""; lastContent = "";
+            document.getElementById("clear-text-btn").textContent = "✅ Cleared!";
+            setTimeout(() => document.getElementById("clear-text-btn").textContent = "🧹 Clear", 1500);
+            hideLoader(); pollInProgress = false; poll();
+        });
 
-    if (!textToCopy) {
-        alert("Nothing to copy!");
-        return;
-    }
+        /* ======================================================
+           FILES TAB
+           ====================================================== */
+        let uploadQueue = []; // [{file, id, status}]
 
-    try {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            await navigator.clipboard.writeText(textToCopy);
-        } else {
-            copyTextFallback(textToCopy);
+        /* ---- Utility: file icon by extension ---- */
+        function fileIcon(name) {
+            const ext = (name.split('.').pop() || '').toLowerCase();
+            const map = {
+                pdf: '📄', jpg: '🖼️', jpeg: '🖼️', png: '🖼️', gif: '🖼️', svg: '🖼️', webp: '🖼️',
+                mp4: '🎬', mov: '🎬', avi: '🎬', mkv: '🎬', webm: '🎬',
+                mp3: '🎵', wav: '🎵', ogg: '🎵', flac: '🎵',
+                zip: '🗜️', rar: '🗜️', '7z': '🗜️', tar: '🗜️', gz: '🗜️',
+                js: '📜', ts: '📜', jsx: '📜', tsx: '📜',
+                html: '🌐', css: '🎨',
+                py: '🐍', java: '☕', cpp: '⚙️', c: '⚙️', cs: '⚙️',
+                txt: '📝', md: '📝', csv: '📊', json: '📋', xml: '📋', yaml: '📋', yml: '📋',
+                xlsx: '📊', xls: '📊', docx: '📄', doc: '📄', pptx: '📊',
+                sh: '🖥️', bat: '🖥️', exe: '💾', dmg: '💾',
+                sql: '🗄️'
+            };
+            return map[ext] || '📎';
         }
 
-        copyTextBtn.textContent = "✅ Copied!";
-        setTimeout(() => copyTextBtn.textContent = "📋 Copy Text", 1500);
+        /* ---- Utility: human-readable size ---- */
+        function humanSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+        }
 
-    } catch (err) {
-        console.error("Clipboard failed:", err);
-        alert("Copy failed. Please copy manually.");
-    }
-});
-</script>
+        /* ---- Utility: unique id ---- */
+        let _uid = 0;
+        function uid() { return ++_uid; }
 
-<script>
-/* -------------------- Clear Editor Text -------------------- */
-const clearBtn = document.getElementById("clear-text-btn");
+        /* ---- Drop Zone ---- */
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
 
-clearBtn.addEventListener("click", async () => {
-    if (!editor.value.trim()) return;
+        dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+        dropZone.addEventListener('drop', e => {
+            e.preventDefault(); dropZone.classList.remove('dragover');
+            addFilesToQueue([...e.dataTransfer.files]);
+        });
+        fileInput.addEventListener('change', () => {
+            addFilesToQueue([...fileInput.files]);
+            fileInput.value = '';
+        });
 
-    const confirmClear = confirm("Are you sure you want to clear the text?");
-    if (!confirmClear) return;
+        function addFilesToQueue(files) {
+            files.forEach(file => {
+                const id = uid();
+                uploadQueue.push({ file, id, status: 'pending' });
+                renderQueueItem({ file, id, status: 'pending' });
+            });
+            if (uploadQueue.length > 0) document.getElementById('upload-queue').classList.add('visible');
+        }
 
-    try {
-        // 🔥 THIS IS THE MAGIC LINE
-        clearTimeout(pollTimer);
-        
-    	pollInProgress = true;
-        showLoader();
+        function renderQueueItem(item) {
+            const list = document.getElementById('queue-list');
+            const li = document.createElement('li');
+            li.className = 'queue-item';
+            li.id = 'qi-' + item.id;
+            const oversized = item.file.size > MAX_FILE_BYTES;
+            const warn = oversized ? '<span class="size-warn">Too large</span>' : '';
+            li.innerHTML = `
+        <span class="queue-file-icon">${fileIcon(item.file.name)}</span>
+        <div class="queue-file-info">
+            <div class="queue-file-name">${escHtml(item.file.name)}${warn}</div>
+            <div class="queue-file-size">${humanSize(item.file.size)}</div>
+            <div class="progress-bar-wrap" id="prog-wrap-${item.id}" style="display:none">
+                <div class="progress-bar-fill" id="prog-${item.id}"></div>
+            </div>
+        </div>
+        <span class="queue-file-status" id="qs-${item.id}">${oversized ? '<span style="color:var(--warn)">⚠️ Skip</span>' : '⏳ Ready'}</span>
+        <button class="queue-remove-btn" onclick="removeFromQueue(${item.id})" title="Remove">✕</button>
+    `;
+            list.appendChild(li);
+        }
 
-        // 2️⃣ Save EMPTY content to server
-        await fetch(apiUrl, {
-            method: "POST",
-            headers: { "Content-Type": "text/plain" },
-            body: ""
-        })
-        .then(r => showStatus(r.status, "clear"))
-        .catch(err => { console.error("Clear failed:", err); showStatus(0, "clear"); });
-        
-        
-        // 1️⃣ Clear locally
-        editor.value = "";
+        function removeFromQueue(id) {
+            uploadQueue = uploadQueue.filter(i => i.id !== id);
+            const el = document.getElementById('qi-' + id);
+            if (el) el.remove();
+            if (uploadQueue.length === 0) document.getElementById('upload-queue').classList.remove('visible');
+        }
 
-        // 3️⃣ Update memory so poll won't restore
-        lastContent = "";
+        document.getElementById('clear-queue-btn').addEventListener('click', () => {
+            uploadQueue = [];
+            document.getElementById('queue-list').innerHTML = '';
+            document.getElementById('upload-queue').classList.remove('visible');
+        });
 
-        clearBtn.textContent = "✅ Cleared!";
-        setTimeout(() => clearBtn.textContent = "🧹 Clear", 1500);
+        /* ---- Upload All ---- */
+        document.getElementById('upload-all-btn').addEventListener('click', async () => {
+            const pending = uploadQueue.filter(i => i.status === 'pending' && i.file.size <= MAX_FILE_BYTES);
+            if (pending.length === 0) { alert("No valid files to upload."); return; }
 
-    } catch (err) {
-        console.error("Clear failed:", err);
-        alert("Failed to clear on server.");
-    } finally {
-        hideLoader();
-        pollInProgress = false;
-        poll();   // restart fresh polling cycle
-    }
-});
-</script>
+            for (const item of pending) {
+                item.status = 'uploading';
+                const statusEl = document.getElementById('qs-' + item.id);
+                const progWrap = document.getElementById('prog-wrap-' + item.id);
+                const prog = document.getElementById('prog-' + item.id);
+                if (statusEl) statusEl.innerHTML = '<span class="uploading">⬆️ Uploading…</span>';
+                if (progWrap) progWrap.style.display = 'block';
 
+                try {
+                    await uploadFileWithProgress(item.file, prog);
+                    item.status = 'done';
+                    if (statusEl) statusEl.innerHTML = '<span class="done">✅ Done</span>';
+                    showStatus(200, 'upload');
+                } catch (err) {
+                    item.status = 'error';
+                    const msg = err.message === '413' ? '⚠️ Too Large' : '❌ Failed';
+                    if (statusEl) statusEl.innerHTML = `<span class="error">${msg}</span>`;
+                    showStatus(err.message === '413' ? 413 : 0, 'upload');
+                }
+            }
 
+            // Remove done items after short delay & refresh list
+            setTimeout(() => {
+                uploadQueue.filter(i => i.status === 'done').forEach(i => {
+                    const el = document.getElementById('qi-' + i.id);
+                    if (el) el.remove();
+                });
+                uploadQueue = uploadQueue.filter(i => i.status !== 'done');
+                if (uploadQueue.length === 0) document.getElementById('upload-queue').classList.remove('visible');
+                loadFileList();
+            }, 1200);
+        });
 
+        function uploadFileWithProgress(file, progEl) {
+            return new Promise((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                const fd = new FormData();
+                fd.append('file', file);
+                xhr.open('POST', fileApiUrl + '/upload');
+                xhr.upload.addEventListener('progress', e => {
+                    if (e.lengthComputable && progEl) {
+                        progEl.style.width = Math.round((e.loaded / e.total) * 100) + '%';
+                    }
+                });
+                xhr.addEventListener('load', () => {
+                    if (xhr.status >= 200 && xhr.status < 300) resolve();
+                    else reject(new Error(String(xhr.status)));
+                });
+                xhr.addEventListener('error', () => reject(new Error('0')));
+                xhr.send(fd);
+            });
+        }
+
+        /* ---- Load File List ---- */
+        async function loadFileList() {
+            try {
+                showLoader();
+                const r = await fetch(fileApiUrl + '/list');
+                if (!r.ok) throw new Error(r.status);
+                const files = await r.json();
+                renderFileList(files);
+            } catch (e) {
+                showStatus(0, 'load');
+            } finally {
+                hideLoader();
+            }
+        }
+
+        function renderFileList(files) {
+            const list = document.getElementById('file-list');
+            const empty = document.getElementById('files-empty-state');
+            const badge = document.getElementById('file-count-badge');
+            list.innerHTML = '';
+            badge.textContent = files.length ? `${files.length} file${files.length > 1 ? 's' : ''}` : '';
+
+            if (!files.length) {
+                list.appendChild(empty);
+                document.getElementById('dl-all-btn').style.display = 'none';
+                return;
+            }
+            document.getElementById('dl-all-btn').style.display = '';
+
+            files.forEach(f => {
+                const li = document.createElement('li');
+                li.className = 'file-item';
+                li.innerHTML = `
+            <span class="file-icon">${fileIcon(f.originalName)}</span>
+            <div class="file-meta">
+                <div class="file-name" title="${escHtml(f.originalName)}">${escHtml(f.originalName)}</div>
+                <div class="file-info">${humanSize(f.fileSize)} &nbsp;•&nbsp; ${formatDate(f.uploadedAt)} &nbsp;•&nbsp; ⬇️ ${f.downloadCount ?? 0} download${f.downloadCount !== 1 ? 's' : ''}</div>
+
+            </div>
+            <div class="file-actions">
+                <button class="file-dl-btn" onclick="downloadFile('${f.fileId}','${escAttr(f.originalName)}')">⬇️ Download</button>
+                <button class="file-del-btn" onclick="deleteFile('${f.fileId}')" title="Delete">🗑️</button>
+            </div>
+        `;
+                list.appendChild(li);
+            });
+        }
+
+        function formatDate(isoStr) {
+            if (!isoStr) return '';
+            try {
+                const d = new Date(isoStr);
+                return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
+                    + ' ' + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+            } catch { return isoStr; }
+        }
+
+        /* ---- Download single file ---- */
+        function downloadFile(fileId, originalName) {
+            const a = document.createElement('a');
+            a.href = fileApiUrl + '/download/' + fileId;
+            a.download = originalName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        /* ---- Download All ---- */
+        document.getElementById('dl-all-btn').addEventListener('click', async () => {
+            const r = await fetch(fileApiUrl + '/list');
+            if (!r.ok) return;
+            const files = await r.json();
+            if (!files.length) return;
+
+            const overlay = document.getElementById('dl-overlay');
+            const fillEl = document.getElementById('dl-progress-fill');
+            const statusEl = document.getElementById('dl-status');
+            overlay.classList.add('visible');
+
+            for (let i = 0; i < files.length; i++) {
+                const f = files[i];
+                statusEl.textContent = `Downloading ${i + 1}/${files.length}: ${f.originalName}`;
+                fillEl.style.width = Math.round(((i) / files.length) * 100) + '%';
+                await new Promise(res => {
+                    const a = document.createElement('a');
+                    a.href = fileApiUrl + '/download/' + f.fileId;
+                    a.download = f.originalName;
+                    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                    setTimeout(res, 600); // stagger downloads
+                });
+            }
+            fillEl.style.width = '100%';
+            statusEl.textContent = '✅ All files downloaded!';
+            setTimeout(() => overlay.classList.remove('visible'), 1500);
+        });
+
+        /* ---- Delete file ---- */
+        async function deleteFile(fileId) {
+            if (!confirm("Delete this file?")) return;
+            showLoader();
+            try {
+                const r = await fetch(fileApiUrl + '/delete/' + fileId, { method: 'DELETE' });
+                showStatus(r.status, 'delete');
+                loadFileList();
+            } catch { showStatus(0, 'delete'); }
+            finally { hideLoader(); }
+        }
+
+        /* ---- Helpers ---- */
+        function escHtml(str) {
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+        function escAttr(str) {
+            return String(str).replace(/'/g, "\\'");
+        }
+
+        /* ---- Init file list on load ---- */
+        // (loaded on tab switch, not on page load to avoid extra requests)
+    </script>
 
 </body>
 

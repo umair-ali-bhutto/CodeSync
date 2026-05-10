@@ -1,13 +1,6 @@
 package com.cs.config;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-
-import com.cs.entity.CodeSyncClient;
-import com.cs.repository.CodeSyncClientRepository;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
@@ -15,7 +8,6 @@ import jakarta.annotation.PreDestroy;
 /**
  * Startup initializer responsible for:
  * <ul>
- * <li>Loading default client IP-to-name mappings into the database</li>
  * <li>Controlling global logging enable/disable flag</li>
  * <li>Ensuring required data is present when the application starts</li>
  * </ul>
@@ -33,14 +25,6 @@ public class StartUpInit {
 	private static String enableLogs = "Y";
 
 	/**
-	 * Repository used to perform CRUD operations on
-	 * {@link com.cs.entity.CodeSyncClient} for maintaining IP-to-name client
-	 * mappings.
-	 */
-	@Autowired
-	private CodeSyncClientRepository repo;
-
-	/**
 	 * Executes automatically after the Spring context is initialized.
 	 * <p>
 	 * Responsible for inserting or updating default client records and enabling
@@ -49,7 +33,6 @@ public class StartUpInit {
 	@PostConstruct
 	public void init() {
 		CodeSyncLogger.logInfo("INIT CALLED");
-		syncDefaults();
 		setEnableLogs("Y");
 	}
 
@@ -83,38 +66,4 @@ public class StartUpInit {
 		StartUpInit.enableLogs = enableLogs;
 	}
 
-	/**
-	 * Inserts or updates a predefined set of trusted client IP-to-name mappings
-	 * into the database.
-	 * <p>
-	 * If a client IP already exists, its name is updated. If it does not exist, a
-	 * new record is created.
-	 * <p>
-	 * This ensures the database always contains the latest known client list
-	 * without creating duplicate records.
-	 */
-	public void syncDefaults() {
-		Map<String, String> defaults = new HashMap<>();
-
-		defaults.put("172.191.1.106", "Wasih");
-		defaults.put("172.191.1.118", "Ashar");
-		defaults.put("172.191.1.134", "Naveed");
-		defaults.put("172.191.1.175", "Tanseer");
-		defaults.put("172.191.1.184", "Ahsan");
-		defaults.put("172.191.1.189", "Zohair");
-		defaults.put("172.191.1.198", "Faisal");
-		defaults.put("172.191.1.199", "Saad Fazal");
-		defaults.put("172.191.1.200", "Internee Windows");
-		defaults.put("172.191.1.223", "Umair Ali");
-		defaults.put("172.191.1.238", "Azeem");
-
-		defaults.forEach((ip, name) -> {
-			CodeSyncClient client = repo.findById(ip).orElseGet(CodeSyncClient::new);
-			client.setIp(ip);
-			client.setName(name);
-			repo.save(client);
-		});
-
-		CodeSyncLogger.logInfo("✅ CodeSync clients synced with DB");
-	}
 }

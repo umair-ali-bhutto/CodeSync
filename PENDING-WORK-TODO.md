@@ -1,4 +1,18 @@
 
+we need to fix file sharing everything else later
+error seen by now
+
+need button for refresh
+when all files cleared gets network error
+dont allow folder to be uploaded
+delete all button need
+need to show seconds as well in uploaded files
+after saving file add time in filename as well
+
+
+
+after the errors fixed we need to add feature of identifying who uploaded files
+
 
 
 
