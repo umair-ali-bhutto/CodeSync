@@ -21,10 +21,13 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.cs.config.CodeSyncLogger;
-import com.cs.config.CodeSyncUtil;
 import com.cs.dto.SharedFileDTO;
 import com.cs.entity.CodeSyncSharedFile;
+import com.cs.service.CodeSyncClientCache;
 import com.cs.service.CodeSyncSharedFileService;
+import com.cs.util.CodeSyncUtil;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * REST API for file sharing within a CodeSync share key.
@@ -50,7 +53,8 @@ public class FileShareController {
 	 * Upload a file. Returns 201 on success, 413 if file is too large.
 	 */
 	@PostMapping("/{key}/upload")
-	public ResponseEntity<String> upload(@PathVariable String key, @RequestParam("file") MultipartFile file) {
+	public ResponseEntity<String> upload(@PathVariable String key, @RequestParam("file") MultipartFile file,
+			HttpServletRequest request) {
 
 		CodeSyncUtil.validateKey(key);
 
@@ -59,7 +63,10 @@ public class FileShareController {
 		}
 
 		try {
-			CodeSyncSharedFile saved = fileService.store(key, file);
+			String ip = CodeSyncUtil.getClientIp(request);
+			String clientName = CodeSyncClientCache.getNameByIp(ip);
+
+			CodeSyncSharedFile saved = fileService.store(key, file, ip, clientName);
 			return ResponseEntity.status(HttpStatus.CREATED).body(saved.getFileId());
 		} catch (IllegalArgumentException e) {
 			// File too large
@@ -124,22 +131,37 @@ public class FileShareController {
 	 * Delete a file by its fileId.
 	 */
 	@DeleteMapping("/{key}/delete/{fileId}")
-	public ResponseEntity<Void> delete(@PathVariable String key, @PathVariable String fileId) {
+	public ResponseEntity<String> delete(@PathVariable String key, @PathVariable String fileId) {
 
 		CodeSyncUtil.validateKey(key);
 
 		try {
 			CodeSyncSharedFile f = fileService.findByFileId(fileId);
 			if (!f.getShareKey().equals(key)) {
-				return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+				return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Forbidden");
 			}
 			fileService.delete(fileId);
-			return ResponseEntity.ok().build();
+			return ResponseEntity.ok("Deleted");
 		} catch (IllegalArgumentException e) {
-			return ResponseEntity.notFound().build();
+			return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Not found");
 		} catch (Exception e) {
 			CodeSyncLogger.logError(getClass(), "Exception", e);
-			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Delete failed");
 		}
 	}
+
+	/**
+	 * DELETE ALL active files for a share key
+	 */
+	@DeleteMapping("/{key}/delete-all")
+	public ResponseEntity<String> deleteAll(@PathVariable String key) {
+		CodeSyncUtil.validateKey(key);
+		try {
+			int count = fileService.deleteAll(key);
+			return ResponseEntity.ok("Deleted " + count + " files.");
+		} catch (IOException e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Delete all failed.");
+		}
+	}
+
 }

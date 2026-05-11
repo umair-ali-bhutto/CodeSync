@@ -6,6 +6,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -53,14 +55,17 @@ public class CodeSyncSharedFileService {
 	 * @throws IOException              on I/O failure
 	 */
 	@Transactional
-	public CodeSyncSharedFile store(String shareKey, MultipartFile file) throws IOException {
+	public CodeSyncSharedFile store(String shareKey, MultipartFile file, String uploaderIp, String uploaderName)
+			throws IOException {
 		if (file.getSize() > MAX_FILE_SIZE) {
 			throw new IllegalArgumentException("File exceeds maximum allowed size of 100 MB.");
 		}
 
+		String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+
 		String fileId = UUID.randomUUID().toString();
 		String safeName = sanitizeFilename(file.getOriginalFilename());
-		String storedName = fileId + "_" + safeName;
+		String storedName = fileId + "_T-" + timestamp + "_" + safeName;
 
 		// Create per-shareKey folder
 		Path dir = Paths.get(uploadDir, shareKey);
@@ -76,6 +81,8 @@ public class CodeSyncSharedFileService {
 		entity.setContentType(file.getContentType());
 		entity.setFileSize(file.getSize());
 		entity.setStoredPath(destination.toString());
+		entity.setUploaderIp(uploaderIp);
+		entity.setUploaderName(uploaderName);
 
 		return repo.save(entity);
 	}
@@ -84,9 +91,13 @@ public class CodeSyncSharedFileService {
 	 * Returns all files for the given share key as DTOs.
 	 */
 	public List<SharedFileDTO> listFiles(String shareKey) {
-		return repo.findByShareKeyAndIsActiveTrueOrderByUploadedAtDesc(shareKey).stream()
+		List<CodeSyncSharedFile> results = repo.findByShareKeyAndIsActiveTrueOrderByUploadedAtDesc(shareKey);
+		if (results == null)
+			return java.util.Collections.emptyList();
+		return results.stream()
 				.map(f -> new SharedFileDTO(f.getFileId(), f.getOriginalName(), f.getContentType(), f.getFileSize(),
-						f.getUploadedAt(), f.getDownloadCount(), f.getLastDownloadedAt()))
+						f.getUploadedAt(), f.getDownloadCount(), f.getLastDownloadedAt(), f.getUploaderIp(),
+						f.getUploaderName()))
 				.collect(Collectors.toList());
 	}
 
@@ -122,6 +133,19 @@ public class CodeSyncSharedFileService {
 	@Transactional
 	public void incrementDownload(String fileId) {
 		repo.incrementDownloadCount(fileId);
+	}
+
+	@Transactional
+	public int deleteAll(String shareKey) throws IOException {
+		List<CodeSyncSharedFile> files = repo.findByShareKeyAndIsActiveTrueOrderByUploadedAtDesc(shareKey);
+
+		Timestamp now = new Timestamp(System.currentTimeMillis());
+		for (CodeSyncSharedFile f : files) {
+			f.setIsActive(false);
+			f.setDeletedAt(now);
+		}
+		repo.saveAll(files);
+		return files.size();
 	}
 
 	// ---- Private helpers ----

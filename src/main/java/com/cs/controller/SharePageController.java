@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 
 import com.cs.config.CodeSyncLogger;
-import com.cs.config.CodeSyncUtil;
+import com.cs.util.CodeSyncUtil;
 
 /**
  * Serves the share editor UI.

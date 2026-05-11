@@ -8,9 +8,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.cs.config.CodeSyncUtil;
 import com.cs.entity.CodeSync;
 import com.cs.service.CodeSyncService;
+import com.cs.util.CodeSyncUtil;
 
 /**
  * REST API for managing CodeSync shares.

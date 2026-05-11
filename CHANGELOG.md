@@ -6,15 +6,19 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ---
 
-## [V-2.0.0] 10-MAY-2026
+## [V-2.0.0] 10-MAY-2026 <--> 11-MAY-2026
 
-### Changed
+### Changed 10-MAY-2026
 
 - Migrated Project to Java 25 Spring boot 4
 
-### Added
+### Added 10-MAY-2026
 
 - File Sharing 
+
+### Modification 11-MAY-2026
+
+- Fixed Bugs In File Transfer
 
 ---
 

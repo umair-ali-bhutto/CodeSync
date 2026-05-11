@@ -62,6 +62,12 @@ public class CodeSyncSharedFile {
 	@Column(name = "LAST_DOWNLOADED_AT")
 	private Timestamp lastDownloadedAt;
 
+	@Column(name = "UPLOADER_IP", length = 64)
+	private String uploaderIp;
+
+	@Column(name = "UPLOADER_NAME", length = 128)
+	private String uploaderName;
+
 	@PrePersist
 	public void onCreate() {
 		uploadedAt = new Timestamp(System.currentTimeMillis());
@@ -163,6 +169,22 @@ public class CodeSyncSharedFile {
 
 	public void setLastDownloadedAt(Timestamp lastDownloadedAt) {
 		this.lastDownloadedAt = lastDownloadedAt;
+	}
+
+	public String getUploaderIp() {
+		return uploaderIp;
+	}
+
+	public void setUploaderIp(String uploaderIp) {
+		this.uploaderIp = uploaderIp;
+	}
+
+	public String getUploaderName() {
+		return uploaderName;
+	}
+
+	public void setUploaderName(String uploaderName) {
+		this.uploaderName = uploaderName;
 	}
 
 }

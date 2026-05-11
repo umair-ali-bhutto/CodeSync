@@ -25,6 +25,7 @@ import org.springframework.web.util.ContentCachingRequestWrapper;
 import com.cs.entity.CodeSyncAudit;
 import com.cs.service.CodeSyncAuditService;
 import com.cs.service.CodeSyncClientCache;
+import com.cs.util.CodeSyncUtil;
 
 import io.github.bucket4j.Bucket;
 import jakarta.servlet.FilterChain;
@@ -60,6 +61,7 @@ public class SecurityConfig {
 	/**
 	 * Main Security Filter Chain - Modern Spring Security 6.x approach
 	 */
+	@SuppressWarnings("unused")
 	@Bean
 	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
@@ -153,7 +155,7 @@ public class SecurityConfig {
 
 				ContentCachingRequestWrapper wrappedRequest = new ContentCachingRequestWrapper(request, 0);
 
-				String clientIp = getClientIp(request);
+				String clientIp = CodeSyncUtil.getClientIp(request);
 				long start = System.currentTimeMillis();
 
 				// 🚫 IP BLOCKING
@@ -268,45 +270,6 @@ public class SecurityConfig {
 
 		codeSyncAuditService.saveSafely(log);
 
-	}
-
-	/**
-	 * Resolves real client IP (supports reverse proxy).
-	 */
-	private String getClientIp(HttpServletRequest request) {
-
-		// 1️⃣ X-Forwarded-For (may contain multiple IPs)
-		String xff = request.getHeader("X-Forwarded-For");
-		if (CodeSyncUtil.isIpValid(xff)) {
-			String ip = xff.split(",")[0].trim();
-			CodeSyncLogger.logInfo("Client IP from X-Forwarded-For: " + ip);
-			return ip;
-		}
-
-		// 2️⃣ X-Real-IP (Nginx)
-		String xRealIp = request.getHeader("X-Real-IP");
-		if (CodeSyncUtil.isIpValid(xRealIp)) {
-			CodeSyncLogger.logInfo("Client IP from X-Real-IP: " + xRealIp);
-			return xRealIp;
-		}
-
-		// 3️⃣ Forwarded (RFC 7239)
-		String forwarded = request.getHeader("Forwarded");
-		if (CodeSyncUtil.isIpValid(forwarded)) {
-			// Example: for=192.168.1.10;proto=https
-			for (String part : forwarded.split(";")) {
-				if (part.trim().startsWith("for=")) {
-					String ip = part.replace("for=", "").replace("\"", "").trim();
-					CodeSyncLogger.logInfo("Client IP from Forwarded: " + ip);
-					return ip;
-				}
-			}
-		}
-
-		// 4️⃣ Fallback
-		String remoteAddr = request.getRemoteAddr();
-		CodeSyncLogger.logInfo("Client IP from request.getRemoteAddr(): " + remoteAddr);
-		return remoteAddr;
 	}
 
 	private String parseClientInfo(String userAgent) {

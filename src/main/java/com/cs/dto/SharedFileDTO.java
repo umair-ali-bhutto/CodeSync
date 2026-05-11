@@ -14,12 +14,14 @@ public class SharedFileDTO {
 	private Timestamp uploadedAt;
 	private Long downloadCount;
 	private Timestamp lastDownloadedAt;
+	private String uploaderIp;
+	private String uploaderName;
 
 	public SharedFileDTO() {
 	}
 
 	public SharedFileDTO(String fileId, String originalName, String contentType, Long fileSize, Timestamp uploadedAt,
-			Long downloadCount, Timestamp lastDownloadedAt) {
+			Long downloadCount, Timestamp lastDownloadedAt, String uploaderIp, String uploaderName) {
 		this.fileId = fileId;
 		this.originalName = originalName;
 		this.contentType = contentType;
@@ -27,6 +29,8 @@ public class SharedFileDTO {
 		this.uploadedAt = uploadedAt;
 		this.downloadCount = downloadCount;
 		this.lastDownloadedAt = lastDownloadedAt;
+		this.uploaderIp = uploaderIp;
+		this.uploaderName = uploaderName;
 	}
 
 	public String getFileId() {
@@ -83,6 +87,22 @@ public class SharedFileDTO {
 
 	public void setLastDownloadedAt(Timestamp lastDownloadedAt) {
 		this.lastDownloadedAt = lastDownloadedAt;
+	}
+
+	public String getUploaderIp() {
+		return uploaderIp;
+	}
+
+	public void setUploaderIp(String uploaderIp) {
+		this.uploaderIp = uploaderIp;
+	}
+
+	public String getUploaderName() {
+		return uploaderName;
+	}
+
+	public void setUploaderName(String uploaderName) {
+		this.uploaderName = uploaderName;
 	}
 
 }

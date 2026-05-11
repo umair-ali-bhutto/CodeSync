@@ -797,8 +797,12 @@
             <button class="btn" id="clear-text-btn" style="display:none">🧹 Clear</button>
             <button class="btn" id="share-btn" style="display:none">🔗 Share URL</button>
             <button class="btn" id="copy-text-btn" style="display:none">📋 Copy Text</button>
+
             <!-- File tab buttons -->
+            <button class="btn" id="refresh-files-btn" style="display:none">🔄 Refresh</button>
+            <button class="btn danger" id="del-all-btn" style="display:none">🗑️ Delete All</button>
             <button class="btn" id="dl-all-btn" style="display:none">⬇️ Download All</button>
+
             <div class="loader" id="loader"></div>
             <div class="toggle" id="mode-toggle" title="Toggle dark/light mode"></div>
         </div>
@@ -919,6 +923,8 @@
         };
         let statusTimer = null;
         function showStatus(statusOrError, context = "") {
+            console.log('statusOrError: ', statusOrError);
+
             if (statusTimer) clearTimeout(statusTimer);
             const cfg = (typeof statusOrError === "number")
                 ? (statusConfig[statusOrError] || { text: `HTTP ${statusOrError}`, color: "#4a90e2" })
@@ -943,7 +949,7 @@
 
             // Toggle header buttons
             const codeButtons = ['clear-text-btn', 'share-btn', 'copy-text-btn'];
-            const fileButtons = ['dl-all-btn'];
+            const fileButtons = ['dl-all-btn', 'refresh-files-btn', 'del-all-btn'];
             codeButtons.forEach(id => document.getElementById(id).style.display = (tab === 'code' ? '' : 'none'));
             fileButtons.forEach(id => document.getElementById(id).style.display = (tab === 'files' ? '' : 'none'));
 
@@ -1049,7 +1055,7 @@
                 zip: '🗜️', rar: '🗜️', '7z': '🗜️', tar: '🗜️', gz: '🗜️',
                 js: '📜', ts: '📜', jsx: '📜', tsx: '📜',
                 html: '🌐', css: '🎨',
-                py: '🐍', java: '☕', cpp: '⚙️', c: '⚙️', cs: '⚙️',
+                py: '🐍', java: '☕', class: '☕', cpp: '⚙️', c: '⚙️', cs: '⚙️',
                 txt: '📝', md: '📝', csv: '📊', json: '📋', xml: '📋', yaml: '📋', yml: '📋',
                 xlsx: '📊', xls: '📊', docx: '📄', doc: '📄', pptx: '📊',
                 sh: '🖥️', bat: '🖥️', exe: '💾', dmg: '💾',
@@ -1191,45 +1197,62 @@
             try {
                 showLoader();
                 const r = await fetch(fileApiUrl + '/list');
-                if (!r.ok) throw new Error(r.status);
-                const files = await r.json();
+                if (!r.ok) { showStatus(r.status, 'load'); return; }
+                const text = await r.text();
+                const files = text.trim() ? JSON.parse(text) : [];
                 renderFileList(files);
             } catch (e) {
+                console.error(e);
                 showStatus(0, 'load');
             } finally {
                 hideLoader();
             }
         }
 
+
         function renderFileList(files) {
             const list = document.getElementById('file-list');
-            const empty = document.getElementById('files-empty-state');
             const badge = document.getElementById('file-count-badge');
             list.innerHTML = '';
             badge.textContent = files.length ? `${files.length} file${files.length > 1 ? 's' : ''}` : '';
 
             if (!files.length) {
-                list.appendChild(empty);
+                list.innerHTML = `
+                <li class="files-empty">
+                    <span class="files-empty-icon">📭</span>
+                    No files shared yet. Upload some above!
+                </li>`;
                 document.getElementById('dl-all-btn').style.display = 'none';
+                document.getElementById('del-all-btn').style.display = 'none';
                 return;
             }
+
             document.getElementById('dl-all-btn').style.display = '';
+            document.getElementById('del-all-btn').style.display = '';
 
             files.forEach(f => {
                 const li = document.createElement('li');
                 li.className = 'file-item';
-                li.innerHTML = `
-            <span class="file-icon">${fileIcon(f.originalName)}</span>
-            <div class="file-meta">
-                <div class="file-name" title="${escHtml(f.originalName)}">${escHtml(f.originalName)}</div>
-                <div class="file-info">${humanSize(f.fileSize)} &nbsp;•&nbsp; ${formatDate(f.uploadedAt)} &nbsp;•&nbsp; ⬇️ ${f.downloadCount ?? 0} download${f.downloadCount !== 1 ? 's' : ''}</div>
 
-            </div>
-            <div class="file-actions">
-                <button class="file-dl-btn" onclick="downloadFile('${f.fileId}','${escAttr(f.originalName)}')">⬇️ Download</button>
-                <button class="file-del-btn" onclick="deleteFile('${f.fileId}')" title="Delete">🗑️</button>
-            </div>
-        `;
+                const uploader = (f.uploaderName) ? f.uploaderName : (f.uploaderIp || '—');
+
+                li.innerHTML = `
+                <span class="file-icon">${fileIcon(f.originalName)}</span>
+                <div class="file-meta">
+                    <div class="file-name" title="${escHtml(f.originalName)}">${escHtml(f.originalName)}</div>
+                    <div class="file-info">
+                        ${humanSize(f.fileSize)} &nbsp;•&nbsp; 
+                        ${formatDate(f.uploadedAt)} &nbsp;•&nbsp; 
+                        ⬇️ ${f.downloadCount ?? 0} download${f.downloadCount !== 1 ? 's' : ''}
+                        &nbsp;•&nbsp; 👤 ${escHtml(uploader)}
+                    </div>
+
+                </div>
+                <div class="file-actions">
+                    <button class="file-dl-btn" onclick="downloadFile('${f.fileId}','${escAttr(f.originalName)}')">⬇️ Download</button>
+                    <button class="file-del-btn" onclick="deleteFile('${f.fileId}')" title="Delete">🗑️</button>
+                </div>
+                `;
                 list.appendChild(li);
             });
         }
@@ -1239,7 +1262,7 @@
             try {
                 const d = new Date(isoStr);
                 return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
-                    + ' ' + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+                    + ' ' + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
             } catch { return isoStr; }
         }
 
@@ -1280,6 +1303,23 @@
             fillEl.style.width = '100%';
             statusEl.textContent = '✅ All files downloaded!';
             setTimeout(() => overlay.classList.remove('visible'), 1500);
+        });
+
+        document.getElementById('refresh-files-btn').addEventListener('click', () => loadFileList());
+
+        document.getElementById('del-all-btn').addEventListener('click', async () => {
+            if (!confirm("Delete ALL files for this share key? This cannot be undone.")) return;
+            showLoader();
+            try {
+                const r = await fetch(fileApiUrl + '/delete-all', { method: 'DELETE' });
+                showStatus(r.status, 'delete');
+            } catch (e) {
+                console.error(e)
+                showStatus(0, 'delete');
+            } finally {
+                hideLoader();
+                loadFileList(); // always refresh regardless of outcome
+            }
         });
 
         /* ---- Delete file ---- */
