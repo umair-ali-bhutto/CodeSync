@@ -19,6 +19,7 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 ### Modification 11-MAY-2026
 
 - Fixed Bugs In File Transfer
+- Added File Uploading Restrictions
 
 ---
 

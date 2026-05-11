@@ -66,7 +66,17 @@ public class FileShareController {
 			String ip = CodeSyncUtil.getClientIp(request);
 			String clientName = CodeSyncClientCache.getNameByIp(ip);
 
+			// Enforce active file limit
+			long active = fileService.countActiveFiles(key);
+			if (active >= 10) {
+				return ResponseEntity.status(HttpStatus.CONFLICT)
+						.body("File limit reached. Maximum 10 active files per share.");
+			}
+
 			CodeSyncSharedFile saved = fileService.store(key, file, ip, clientName);
+			request.setAttribute("uploadedFileSize", file.getSize());
+			request.setAttribute("uploadedFileName", file.getOriginalFilename());
+
 			return ResponseEntity.status(HttpStatus.CREATED).body(saved.getFileId());
 		} catch (IllegalArgumentException e) {
 			// File too large
@@ -74,6 +84,15 @@ public class FileShareController {
 		} catch (IOException e) {
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Upload failed.");
 		}
+	}
+
+	/**
+	 * Gets count of Active files
+	 */
+	@GetMapping("/{key}/count")
+	public ResponseEntity<Long> count(@PathVariable String key) {
+		CodeSyncUtil.validateKey(key);
+		return ResponseEntity.ok(fileService.countActiveFiles(key));
 	}
 
 	/**

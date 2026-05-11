@@ -195,7 +195,7 @@ public class SecurityConfig {
 				try {
 					filterChain.doFilter(wrappedRequest, response);
 				} catch (Exception e) {
-					CodeSyncLogger.logError(getClass(), "FILTER", e);
+					CodeSyncLogger.logError(getClass(), "FILTER Exception", e);
 				} finally {
 					logAndAudit(wrappedRequest, response, clientIp, start);
 				}
@@ -263,10 +263,27 @@ public class SecurityConfig {
 
 		String clientName = CodeSyncClientCache.getNameByIp(clientIp);
 
-		CodeSyncLogger.logInfo("SECURITY FILTER | " + method + " " + uri + (query != null ? "?" + query : "")
-				+ " | Client=" + clientName + " | IP=" + clientIp + " | browserInfo=" + browserInfo + " | Lang="
-				+ language + " | Ref=" + referer + " | Status=" + response.getStatus() + " | Time=" + duration
-				+ "ms | content size: " + body.length() + "" + bodyLog);
+		Long uploadedFileSize = null;
+		String uploadedFileName = "";
+		try {
+			uploadedFileSize = (Long) request.getAttribute("uploadedFileSize");
+			uploadedFileName = (String) request.getAttribute("uploadedFileName");
+		} catch (Exception ignored) {
+		}
+
+		String uploadInfo = "";
+		if (uploadedFileSize != null) {
+			uploadInfo = " | UploadedFile=" + uploadedFileName + " | UploadSize=" + uploadedFileSize + " bytes" + " ("
+					+ String.format("%.2f", uploadedFileSize / (1024.0 * 1024.0)) + " MB)";
+
+			log.setUploadedFileName(uploadedFileName);
+			log.setUploadedFileSize(uploadedFileSize);
+		}
+
+		CodeSyncLogger.logInfo("SECURITY FILTER | " + method + " " + uri + uploadInfo
+				+ (query != null ? "?" + query : "") + " | Client=" + clientName + " | IP=" + clientIp
+				+ " | browserInfo=" + browserInfo + " | Lang=" + language + " | Ref=" + referer + " | Status="
+				+ response.getStatus() + " | Time=" + duration + "ms | content size: " + body.length() + "" + bodyLog);
 
 		codeSyncAuditService.saveSafely(log);
 

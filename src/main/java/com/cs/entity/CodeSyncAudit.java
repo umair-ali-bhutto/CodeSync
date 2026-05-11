@@ -79,6 +79,12 @@ public class CodeSyncAudit {
 	@Column(name = "SEC_CH_UA_PLATFORM_MOBILE")
 	private String secChUaPlatformMobile;
 
+	@Column(name = "UPLOADED_FILE_NAME", length = 512)
+	private String uploadedFileName;
+
+	@Column(name = "UPLOADED_FILE_SIZE")
+	private Long uploadedFileSize;
+
 	@PrePersist
 	public void onCreate() {
 		createdAt = new Timestamp(System.currentTimeMillis());
@@ -244,6 +250,22 @@ public class CodeSyncAudit {
 
 	public void setSecChUaPlatformMobile(String secChUaPlatformMobile) {
 		this.secChUaPlatformMobile = secChUaPlatformMobile;
+	}
+
+	public String getUploadedFileName() {
+		return uploadedFileName;
+	}
+
+	public void setUploadedFileName(String uploadedFileName) {
+		this.uploadedFileName = uploadedFileName;
+	}
+
+	public Long getUploadedFileSize() {
+		return uploadedFileSize;
+	}
+
+	public void setUploadedFileSize(Long uploadedFileSize) {
+		this.uploadedFileSize = uploadedFileSize;
 	}
 
 }

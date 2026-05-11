@@ -86,6 +86,10 @@ public class CodeSyncSharedFileService {
 
 		return repo.save(entity);
 	}
+	
+	public long countActiveFiles(String shareKey) {
+	    return repo.countByShareKeyAndIsActiveTrue(shareKey);
+	}
 
 	/**
 	 * Returns all files for the given share key as DTOs.
@@ -147,6 +151,8 @@ public class CodeSyncSharedFileService {
 		repo.saveAll(files);
 		return files.size();
 	}
+	
+	
 
 	// ---- Private helpers ----
 
