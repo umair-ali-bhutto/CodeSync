@@ -6,7 +6,15 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ---
 
-## [V-2.0.0] 10-MAY-2026 <--> 11-MAY-2026
+## [V-2.0.0] 10-MAY-2026 <--> 14-MAY-2026
+
+### Changed 14-MAY-2026
+
+- added response log 
+
+### Added 14-MAY-2026
+
+- Logo added
 
 ### Changed 10-MAY-2026
 
@@ -15,11 +23,12 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 ### Added 10-MAY-2026
 
 - File Sharing 
+- Added File Expiry 
 
 ### Modification 11-MAY-2026
 
 - Fixed Bugs In File Transfer
-- Added File Uploading Restrictions
+- Fixed File Uploading Restrictions
 
 ---
 

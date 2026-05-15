@@ -68,6 +68,9 @@ public class CodeSyncSharedFile {
 	@Column(name = "UPLOADER_NAME", length = 128)
 	private String uploaderName;
 
+	@Column(name = "EXPIRES_AT")
+	private Timestamp expiresAt;
+
 	@PrePersist
 	public void onCreate() {
 		uploadedAt = new Timestamp(System.currentTimeMillis());
@@ -185,6 +188,14 @@ public class CodeSyncSharedFile {
 
 	public void setUploaderName(String uploaderName) {
 		this.uploaderName = uploaderName;
+	}
+
+	public Timestamp getExpiresAt() {
+		return expiresAt;
+	}
+
+	public void setExpiresAt(Timestamp expiresAt) {
+		this.expiresAt = expiresAt;
 	}
 
 }

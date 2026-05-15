@@ -21,6 +21,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.util.ContentCachingRequestWrapper;
+import org.springframework.web.util.ContentCachingResponseWrapper;
 
 import com.cs.entity.CodeSyncAudit;
 import com.cs.service.CodeSyncAuditService;
@@ -71,6 +72,9 @@ public class SecurityConfig {
 
 						// Public API's and Logs
 						.requestMatchers("/api/share/*", "/api/files/**", "/share/*", "/logsService").permitAll()
+
+						// Static resources
+						.requestMatchers("/images/**", "/css/**", "/js/**").permitAll()
 
 						// CRITICAL: login page must be explicitly permitted
 						.requestMatchers("/login", "/login/**").permitAll()
@@ -154,15 +158,16 @@ public class SecurityConfig {
 					FilterChain filterChain) throws ServletException, IOException {
 
 				ContentCachingRequestWrapper wrappedRequest = new ContentCachingRequestWrapper(request, 0);
+				ContentCachingResponseWrapper wrappedResponse = new ContentCachingResponseWrapper(response);
 
 				String clientIp = CodeSyncUtil.getClientIp(request);
 				long start = System.currentTimeMillis();
 
 				// 🚫 IP BLOCKING
 				if (protectionConfig.isBlocked(clientIp)) {
-					response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-					response.getWriter().write("Sorry IP blocked");
-					logAndAudit(wrappedRequest, response, clientIp, start);
+					wrappedResponse.setStatus(HttpServletResponse.SC_FORBIDDEN);
+					wrappedResponse.getWriter().write("Sorry IP blocked");
+					logAndAudit(wrappedRequest, wrappedResponse, clientIp, start);
 					return;
 				}
 
@@ -178,7 +183,7 @@ public class SecurityConfig {
 						jwtAuthenticationEntryPoint.commence(request, response,
 								new org.springframework.security.authentication.BadCredentialsException(
 										"Invalid Share Key"));
-						logAndAudit(wrappedRequest, response, clientIp, start);
+						logAndAudit(wrappedRequest, wrappedResponse, clientIp, start);
 						return;
 					}
 				}
@@ -186,18 +191,18 @@ public class SecurityConfig {
 				// ⏱ RATE LIMIT
 				Bucket bucket = protectionConfig.resolveBucket(clientIp);
 				if (!bucket.tryConsume(1)) {
-					response.setStatus(429);
-					response.getWriter().write("Too many requests");
-					logAndAudit(wrappedRequest, response, clientIp, start);
+					wrappedResponse.setStatus(429);
+					wrappedResponse.getWriter().write("Too many requests");
+					logAndAudit(wrappedRequest, wrappedResponse, clientIp, start);
 					return;
 				}
 
 				try {
-					filterChain.doFilter(wrappedRequest, response);
+					filterChain.doFilter(wrappedRequest, wrappedResponse);
 				} catch (Exception e) {
 					CodeSyncLogger.logError(getClass(), "FILTER Exception", e);
 				} finally {
-					logAndAudit(wrappedRequest, response, clientIp, start);
+					logAndAudit(wrappedRequest, wrappedResponse, clientIp, start);
 				}
 			}
 		};
@@ -206,8 +211,8 @@ public class SecurityConfig {
 	/**
 	 * Extracts and logs request details and inserts it into audit.
 	 */
-	private void logAndAudit(ContentCachingRequestWrapper request, HttpServletResponse response, String clientIp,
-			long startTime) {
+	private void logAndAudit(ContentCachingRequestWrapper request, ContentCachingResponseWrapper response,
+			String clientIp, long startTime) throws IOException {
 		String method = request.getMethod();
 		String uri = request.getRequestURI();
 		String query = request.getQueryString();
@@ -231,6 +236,15 @@ public class SecurityConfig {
 		if (buf.length > 0) {
 			try {
 				body = new String(buf, request.getCharacterEncoding());
+			} catch (Exception ignored) {
+			}
+		}
+
+		String responseBody = "";
+		byte[] responseBuf = response.getContentAsByteArray();
+		if (responseBuf.length > 0) {
+			try {
+				responseBody = new String(responseBuf, response.getCharacterEncoding());
 			} catch (Exception ignored) {
 			}
 		}
@@ -260,6 +274,8 @@ public class SecurityConfig {
 		log.setSecChUaPlatformMobile(secChUa + " | " + secChUaPlatform + " | " + secChUaMobile);
 
 		String bodyLog = (body.length() <= 50000) ? " | Body=" + body : " | Body too large not logging";
+		String responseLog = (responseBody.length() <= 50000) ? " | Response=" + responseBody
+				: " | Response too large, not logging";
 
 		String clientName = CodeSyncClientCache.getNameByIp(clientIp);
 
@@ -280,12 +296,15 @@ public class SecurityConfig {
 			log.setUploadedFileSize(uploadedFileSize);
 		}
 
-		CodeSyncLogger.logInfo("SECURITY FILTER | " + method + " " + uri + uploadInfo
-				+ (query != null ? "?" + query : "") + " | Client=" + clientName + " | IP=" + clientIp
-				+ " | browserInfo=" + browserInfo + " | Lang=" + language + " | Ref=" + referer + " | Status="
-				+ response.getStatus() + " | Time=" + duration + "ms | content size: " + body.length() + "" + bodyLog);
+		CodeSyncLogger
+				.logInfo("SECURITY FILTER | " + method + " " + uri + uploadInfo + (query != null ? "?" + query : "")
+						+ " | Client=" + clientName + " | IP=" + clientIp + " | browserInfo=" + browserInfo + " | Lang="
+						+ language + " | Ref=" + referer + " | Status=" + response.getStatus() + " | Time=" + duration
+						+ "ms | content size: " + body.length() + "" + bodyLog + responseLog);
 
 		codeSyncAuditService.saveSafely(log);
+
+		response.copyBodyToResponse();
 
 	}
 

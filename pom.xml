@@ -18,7 +18,7 @@
 	<version>2.0.0</version>
 	<packaging>war</packaging>
 	<name>codesync</name>
-	<description>A simple Codeshare.io–like application</description>
+	<description>A Simple Text and File Sharing Application</description>
 	<url>https://github.com/umair-ali-bhutto/CodeSync</url>
 	<licenses>
 		<license>

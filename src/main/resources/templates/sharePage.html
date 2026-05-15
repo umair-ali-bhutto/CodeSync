@@ -115,23 +115,10 @@
         .header-left {
             display: flex;
             align-items: center;
-            gap: 0.75rem;
+            gap: 1rem;
             flex-wrap: wrap;
         }
 
-        .logo {
-            padding: 0 14px;
-            height: 32px;
-            background: var(--accent);
-            border-radius: 7px;
-            display: flex;
-            align-items: center;
-            font-weight: 700;
-            color: #fff;
-            font-size: 1rem;
-            letter-spacing: 0.03em;
-            white-space: nowrap;
-        }
 
         .api-name {
             font-size: 0.9rem;
@@ -743,6 +730,14 @@
             text-decoration: underline;
         }
 
+        /* ---- for breaking ---- */
+
+        .mobile-break {
+            display: none;
+            flex-basis: 100%;
+            height: 0;
+        }
+
         /* ---- Responsive ---- */
         @media(max-width: 640px) {
             header {
@@ -763,7 +758,13 @@
                 padding: 0.6rem 0.9rem;
                 font-size: 0.85rem;
             }
+
+            .mobile-break {
+                display: block;
+            }
         }
+
+
 
         /* ---- Download-all progress overlay ---- */
         .dl-overlay {
@@ -828,11 +829,16 @@
 
     <header role="banner">
         <div class="header-left">
-            <div class="logo">Code Sync</div>
-            <div class="api-name" id="api-name">Key: /[[${shareKey}]]</div>
+            <img id="logo-dark" th:src="@{/images/codesync-logo-dark.png}" alt="logo" width="170">
+            <img id="logo-light" th:src="@{/images/codesync-logo-light.png}" alt="logo" width="170"
+                style="display:none;">
+
+            <div class="api-name" id="api-name">URL Opened: /[[${shareKey}]]</div>
         </div>
         <div class="header-right">
             <div id="status-display"></div>
+            <div class="mobile-break"></div>
+
             <!-- Code tab buttons (shown/hidden by JS) -->
             <button class="btn" id="clear-text-btn" style="display:none">🧹 Clear</button>
             <button class="btn" id="share-btn" style="display:none">🔗 Share URL</button>
@@ -940,9 +946,22 @@
 
         /* ---- Dark/Light Mode ---- */
         const toggle = document.getElementById('mode-toggle');
+        const darkLogo = document.getElementById('logo-dark');
+        const lightLogo = document.getElementById('logo-light');
+
         toggle.addEventListener('click', () => {
             document.body.classList.toggle('dark');
             toggle.classList.toggle('active');
+
+            const isDark = document.body.classList.contains('dark');
+
+            if (isDark) {
+                darkLogo.style.display = 'none';
+                lightLogo.style.display = 'block';
+            } else {
+                darkLogo.style.display = 'block';
+                lightLogo.style.display = 'none';
+            }
         });
 
         /* ---- Loader ---- */
@@ -1318,6 +1337,13 @@
 
             files.forEach(f => {
                 const li = document.createElement('li');
+                const now = Date.now();
+                const expiresAt = f.expiresAt ? new Date(f.expiresAt) : null;
+                const isExpiring = expiresAt && (expiresAt - now) < 24 * 60 * 60 * 1000; // < 24h left
+                const expiryStr = expiresAt ? formatExpiry(expiresAt, now) : '—';
+                const expiryHtml = expiresAt
+                    ? `&nbsp;•&nbsp; ⏳ <span data-expires-at="${expiresAt.toISOString()}" style="color:${!isExpiring ? '#888' : 'var(--danger)'};font-weight:${!isExpiring ? 400 : 700}">${expiryStr}</span>`
+                    : '';
                 li.className = 'file-item';
 
                 const uploader = (f.uploaderName) ? f.uploaderName : (f.uploaderIp || '—');
@@ -1331,6 +1357,7 @@
                         ${formatDate(f.uploadedAt)} &nbsp;•&nbsp; 
                         ⬇️ ${f.downloadCount ?? 0} download${f.downloadCount !== 1 ? 's' : ''}
                         &nbsp;•&nbsp; 👤 ${escHtml(uploader)}
+                        ${expiryHtml}
                     </div>
 
                 </div>
@@ -1341,6 +1368,30 @@
                 `;
                 list.appendChild(li);
             });
+
+            if (files.some(f => f.expiresAt)) startExpiryTicker();
+        }
+
+        let expiryTicker = null;
+        function startExpiryTicker() {
+            if (expiryTicker) clearInterval(expiryTicker);
+            expiryTicker = setInterval(() => {
+                let anyExpired = false;
+                document.querySelectorAll('[data-expires-at]').forEach(el => {
+                    const expiresAt = new Date(el.dataset.expiresAt);
+                    const diff = expiresAt - Date.now();
+                    el.textContent = formatExpiry(expiresAt, Date.now());
+                    el.style.color = diff < 60000 ? 'var(--danger)' : '';
+                    el.style.fontWeight = diff < 60000 ? '700' : '400';
+                    if (diff <= 0) anyExpired = true;
+                });
+                // Refresh list when something expires so it disappears cleanly
+                if (anyExpired) {
+                    clearInterval(expiryTicker);
+                    expiryTicker = null;
+                    loadFileList();
+                }
+            }, 1000);
         }
 
         function formatDate(isoStr) {
@@ -1350,6 +1401,21 @@
                 return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
                     + ' ' + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
             } catch { return isoStr; }
+        }
+
+        function formatExpiry(expiresAt, now) {
+            const diffMs = expiresAt - now;
+            if (diffMs <= 0) return 'Expired';
+
+            const diffSecs = Math.floor(diffMs / 1000);
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+
+            if (diffSecs < 60) return `Expires in ${diffSecs}s`;
+            if (diffMins < 60) return `Expires in ${diffMins}m ${diffSecs % 60}s`;
+            if (diffHours < 24) return `Expires in ${diffHours}h ${diffMins % 60}m ${diffSecs % 60}s`;
+            return `Expires in ${diffDays}d ${diffHours % 24}h ${diffMins % 60}m ${diffSecs % 60}s`;
         }
 
         /* ---- Download single file ---- */

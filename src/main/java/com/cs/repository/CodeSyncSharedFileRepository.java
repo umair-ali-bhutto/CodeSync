@@ -1,5 +1,6 @@
 package com.cs.repository;
 
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.Optional;
 
@@ -27,4 +28,6 @@ public interface CodeSyncSharedFileRepository extends JpaRepository<CodeSyncShar
 	void deleteByFileId(String fileId);
 
 	long countByShareKeyAndIsActiveTrue(String shareKey);
+
+	List<CodeSyncSharedFile> findByIsActiveTrueAndExpiresAtBefore(Timestamp now);
 }

@@ -31,13 +31,6 @@ import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * REST API for file sharing within a CodeSync share key.
- *
- * Base path: /api/files/{key}
- *
- * POST /api/files/{key}/upload — upload a single file GET /api/files/{key}/list
- * — list all files for the key (JSON) GET /api/files/{key}/download/{id} —
- * download a file by its fileId DELETE /api/files/{key}/delete/{id} — delete a
- * file by its fileId
  */
 @RestController
 @RequestMapping("/api/files")
@@ -50,7 +43,7 @@ public class FileShareController {
 	}
 
 	/**
-	 * Upload a file. Returns 201 on success, 413 if file is too large.
+	 * Upload a file. Returns 201 on success, 413 if file is too large, 409 if file limit reached.
 	 */
 	@PostMapping("/{key}/upload")
 	public ResponseEntity<String> upload(@PathVariable String key, @RequestParam("file") MultipartFile file,
@@ -119,6 +112,17 @@ public class FileShareController {
 			// Security: make sure the file belongs to this key
 			if (!f.getShareKey().equals(key)) {
 				return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+			}
+
+			// Stop expired files from being downloaded
+			if (f.getExpiresAt() != null
+					&& f.getExpiresAt().before(new java.sql.Timestamp(System.currentTimeMillis()))) {
+				return ResponseEntity.status(HttpStatus.GONE).body(null); // 410 Gone
+			}
+
+			// Stop inactive (soft-deleted) files from being downloaded
+			if (!Boolean.TRUE.equals(f.getIsActive())) {
+				return ResponseEntity.status(HttpStatus.GONE).body(null);
 			}
 
 			fileService.incrementDownload(f.getFileId());

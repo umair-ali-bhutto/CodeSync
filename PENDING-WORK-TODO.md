@@ -641,3 +641,6 @@ fix harcoded context roots
 CodeSyncUtil -> getHtmlErrorPage
 SecurityConfig -> requestLoggingFilter
 sharepage.html
+
+
+Jprofiler visualvm actuator micrometer zipkin graalvm springcontextindexer

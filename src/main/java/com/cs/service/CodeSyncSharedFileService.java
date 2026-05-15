@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.cs.config.CodeSyncLogger;
 import com.cs.dto.SharedFileDTO;
 import com.cs.entity.CodeSyncSharedFile;
 import com.cs.repository.CodeSyncSharedFileRepository;
@@ -40,6 +41,18 @@ public class CodeSyncSharedFileService {
 
 	@Value("${codesync.upload-dir}")
 	private String uploadDir;
+
+	@Value("${codesync.archive-dir}")
+	private String archiveDirectory;
+
+	@Value("${codesync.file-expiry.days:0}")
+	private long expiryDays;
+
+	@Value("${codesync.file-expiry.hours:0}")
+	private long expiryHours;
+
+	@Value("${codesync.file-expiry.minutes:10}")
+	private long expiryMinutes;
 
 	public CodeSyncSharedFileService(CodeSyncSharedFileRepository repo) {
 		this.repo = repo;
@@ -83,12 +96,12 @@ public class CodeSyncSharedFileService {
 		entity.setStoredPath(destination.toString());
 		entity.setUploaderIp(uploaderIp);
 		entity.setUploaderName(uploaderName);
-
+		entity.setExpiresAt(calculateExpiry());
 		return repo.save(entity);
 	}
-	
+
 	public long countActiveFiles(String shareKey) {
-	    return repo.countByShareKeyAndIsActiveTrue(shareKey);
+		return repo.countByShareKeyAndIsActiveTrue(shareKey);
 	}
 
 	/**
@@ -101,7 +114,7 @@ public class CodeSyncSharedFileService {
 		return results.stream()
 				.map(f -> new SharedFileDTO(f.getFileId(), f.getOriginalName(), f.getContentType(), f.getFileSize(),
 						f.getUploadedAt(), f.getDownloadCount(), f.getLastDownloadedAt(), f.getUploaderIp(),
-						f.getUploaderName()))
+						f.getUploaderName(), f.getExpiresAt()))
 				.collect(Collectors.toList());
 	}
 
@@ -129,6 +142,7 @@ public class CodeSyncSharedFileService {
 	@Transactional
 	public void delete(String fileId) {
 		CodeSyncSharedFile f = findByFileId(fileId);
+		archiveFile(f);
 		f.setIsActive(false);
 		f.setDeletedAt(new Timestamp(System.currentTimeMillis()));
 		repo.save(f);
@@ -145,16 +159,72 @@ public class CodeSyncSharedFileService {
 
 		Timestamp now = new Timestamp(System.currentTimeMillis());
 		for (CodeSyncSharedFile f : files) {
+			archiveFile(f);
 			f.setIsActive(false);
 			f.setDeletedAt(now);
 		}
 		repo.saveAll(files);
 		return files.size();
 	}
-	
-	
+
+	@Transactional
+	public int expireFiles() {
+		Timestamp now = new Timestamp(System.currentTimeMillis());
+		List<CodeSyncSharedFile> expired = repo.findByIsActiveTrueAndExpiresAtBefore(now);
+		if (expired.isEmpty())
+			return 0;
+
+		expired.forEach(f -> {
+			archiveFile(f);
+			CodeSyncLogger.logInfo("Expired File: "+f.getOriginalName());
+			f.setIsActive(false);
+			f.setDeletedAt(now);
+		});
+		repo.saveAll(expired);
+
+		CodeSyncLogger.logInfo("File expiry job: marked " + expired.size() + " file(s) as inactive.");
+		return expired.size();
+	}
 
 	// ---- Private helpers ----
+
+	// ---- Archive helper ----
+	private void archiveFile(CodeSyncSharedFile f) {
+		try {
+			Path source = Paths.get(f.getStoredPath());
+			if (!Files.exists(source))
+				return; // already gone, skip silently
+
+			Path archiveDir = Paths.get(archiveDirectory, f.getShareKey());
+			Files.createDirectories(archiveDir);
+
+			Path destination = archiveDir.resolve(source.getFileName());
+
+			// If a file with same name already exists in archive, prefix with timestamp
+			if (Files.exists(destination)) {
+				String ts = String.valueOf(System.currentTimeMillis());
+				destination = archiveDir.resolve(ts + "_" + source.getFileName());
+			}
+
+			Files.move(source, destination, StandardCopyOption.REPLACE_EXISTING);
+
+			// Update stored path in entity so DB reflects the new location
+			f.setStoredPath(destination.toString());
+
+		} catch (Exception e) {
+			CodeSyncLogger.logError(getClass(), "archiveFile Exception", e);
+		}
+	}
+
+	private Timestamp calculateExpiry() {
+		long totalMinutes = (expiryDays * 24 * 60) + (expiryHours * 60) + expiryMinutes;
+		if (totalMinutes <= 0) {
+			throw new IllegalStateException("File expiry is misconfigured — total duration is 0. "
+					+ "Set at least one of: codesync.file-expiry.days, .hours, or .minutes");
+		}
+		long expiresAtMillis = System.currentTimeMillis() + (totalMinutes * 60 * 1000);
+		return new Timestamp(expiresAtMillis);
+	}
 
 	private String sanitizeFilename(String name) {
 		if (name == null || name.isBlank())

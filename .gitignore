@@ -17,5 +17,6 @@ buildNumber.properties
 .classpath
 
 TEST/
+TEST2/
 
 Clients.txt
