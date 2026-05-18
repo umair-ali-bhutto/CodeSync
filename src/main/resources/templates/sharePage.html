@@ -78,6 +78,9 @@
             --radius: 10px;
             --file-drop-light: #f7faff;
             --file-drop-dark: #181828;
+
+            --scroll-track: #e2e8f0;
+            --scroll-thumb: #0077b6;
         }
 
         *,
@@ -707,6 +710,9 @@
         body.dark {
             background: var(--bg-dark);
             color: var(--text-dark);
+
+            --scroll-track: #111827;
+            --scroll-thumb: #38bdf8;
         }
 
         body.dark header {
@@ -821,6 +827,42 @@
         .dl-status {
             font-size: 0.82rem;
             color: #888;
+        }
+
+
+
+
+        /* 1. Global Scrollbar (Chrome, Safari, Edge) */
+        ::-webkit-scrollbar {
+            width: 12px;
+            /* Vertical scrollbar width */
+            height: 12px;
+            /* Horizontal scrollbar height */
+        }
+
+        /* The background of the scrollbar area */
+        ::-webkit-scrollbar-track {
+            background: var(--scroll-track);
+        }
+
+        /* The draggable handle */
+        ::-webkit-scrollbar-thumb {
+            background: var(--scroll-thumb);
+            border-radius: 20px;
+            border: 2px solid var(--bg-dark);
+            /* Creates a little space around the handle */
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            border: 1px solid transparent;
+            background: var(--accent);
+            box-shadow: 0 0 12px rgba(56, 189, 248, 0.5);
+        }
+
+        /* 2. Firefox Support */
+        * {
+            scrollbar-width: auto;
+            scrollbar-color: var(--scroll-thumb) var(--scroll-track);
         }
     </style>
 </head>
@@ -942,7 +984,7 @@
         const fileApiUrl = "/codesync/api/files/" + shareKey;
         const MAX_FILE_BYTES = 100 * 1024 * 1024; // 100 MB
         const MAX_FILES_PER_SHARE = 10;
-        const MAX_QUEUE_SIZE = 10;
+        const MAX_QUEUE_SIZE = 10; //get from backend
 
         /* ---- Dark/Light Mode ---- */
         const toggle = document.getElementById('mode-toggle');

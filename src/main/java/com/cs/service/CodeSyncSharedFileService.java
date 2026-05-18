@@ -35,7 +35,7 @@ import com.cs.repository.CodeSyncSharedFileRepository;
 public class CodeSyncSharedFileService {
 
 	/** Max allowed upload size: 100 MB */
-	public static final long MAX_FILE_SIZE = 100L * 1024 * 1024;
+	public static final long MAX_FILE_SIZE = 100L * 1024 * 1024; // get from backend
 
 	private final CodeSyncSharedFileRepository repo;
 

@@ -6,15 +6,7 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ---
 
-## [V-2.0.0] 10-MAY-2026 <--> 14-MAY-2026
-
-### Changed 14-MAY-2026
-
-- added response log 
-
-### Added 14-MAY-2026
-
-- Logo added
+## [V-2.0.0] 10-MAY-2026 <--> 15-MAY-2026
 
 ### Changed 10-MAY-2026
 
@@ -22,13 +14,29 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ### Added 10-MAY-2026
 
-- File Sharing 
+- File Sharing Feature
 - Added File Expiry 
+
 
 ### Modification 11-MAY-2026
 
 - Fixed Bugs In File Transfer
 - Fixed File Uploading Restrictions
+
+
+### Changed 14-MAY-2026
+
+- added response log 
+
+### Added 14-MAY-2026
+
+- Logo added on share page
+
+
+### Changed 15-MAY-2026
+
+- added custom scrollbar on share page
+
 
 ---
 

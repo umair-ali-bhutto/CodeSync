@@ -61,7 +61,7 @@ public class FileShareController {
 
 			// Enforce active file limit
 			long active = fileService.countActiveFiles(key);
-			if (active >= 10) {
+			if (active >= 10) { //edit get from backend
 				return ResponseEntity.status(HttpStatus.CONFLICT)
 						.body("File limit reached. Maximum 10 active files per share.");
 			}
