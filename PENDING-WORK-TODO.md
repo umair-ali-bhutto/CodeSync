@@ -1,13 +1,3 @@
-get file size from backend
-
-
-
-
-
-handle light mode dark mode state
-
-
-
 
 
 
@@ -699,3 +689,4 @@ Jprofiler visualvm actuator micrometer zipkin graalvm springcontextindexer
 	// also add feature to download older data
 	// please download data in excel in dashboard please
 	// show name with ip in below table in dashboard as well i only see ip
+  // modify dash board and make it more feature rich with filters and also file download this a s well

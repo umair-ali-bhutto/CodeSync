@@ -7,6 +7,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
@@ -15,7 +16,9 @@ import jakarta.persistence.Table;
  * Represents a file uploaded against a share key.
  */
 @Entity
-@Table(name = "CODE_SYNC_SHARED_FILE")
+@Table(name = "CODE_SYNC_SHARED_FILE", indexes = {
+		@Index(name = "IDX_SF_SHARE_ACTIVE_UPLOAD", columnList = "SHARE_KEY, IS_ACTIVE, UPLOADED_AT"),
+		@Index(name = "IDX_SF_ACTIVE_EXPIRES", columnList = "IS_ACTIVE, EXPIRES_AT") })
 public class CodeSyncSharedFile {
 
 	@Id

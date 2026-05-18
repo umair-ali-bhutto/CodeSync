@@ -1,5 +1,7 @@
 package com.cs.entity;
 
+import java.sql.Timestamp;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
@@ -12,6 +14,8 @@ public class CodeSyncClient {
 	private String ip;
 
 	private String name;
+
+	private Timestamp inserted_on;
 
 	// getters setters
 
@@ -29,5 +33,13 @@ public class CodeSyncClient {
 
 	public void setName(String name) {
 		this.name = name;
+	}
+
+	public Timestamp getInserted_on() {
+		return inserted_on;
+	}
+
+	public void setInserted_on(Timestamp inserted_on) {
+		this.inserted_on = inserted_on;
 	}
 }

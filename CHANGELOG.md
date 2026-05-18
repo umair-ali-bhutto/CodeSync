@@ -6,7 +6,7 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ---
 
-## [V-2.0.0] 10-MAY-2026 <--> 15-MAY-2026
+## [V-2.0.0] 10-MAY-2026 <--> 18-MAY-2026
 
 ### Changed 10-MAY-2026
 
@@ -15,31 +15,34 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 ### Added 10-MAY-2026
 
 - File Sharing Feature
-- Added File Expiry 
-
+- Added File Expiry
 
 ### Modification 11-MAY-2026
 
 - Fixed Bugs In File Transfer
 - Fixed File Uploading Restrictions
 
-
 ### Changed 14-MAY-2026
 
-- added response log 
+- added response log
 
 ### Added 14-MAY-2026
 
 - Logo added on share page
 
-
 ### Changed 15-MAY-2026
 
 - added custom scrollbar on share page
 
+### Changed 18-MAY-2026
+
+- fixed issue of file size hard coded
+
+### Added 18-MAY-2026
+
+- ligth/dark mode state saving feature for perticular keys
 
 ---
-
 
 ## [V-1.1.6] 8-APR-2026
 
@@ -66,7 +69,6 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 - Added CSV Download for Audit in Dashboard
 
 ---
-
 
 ## [V-1.1.3] 13-FEB-2026
 

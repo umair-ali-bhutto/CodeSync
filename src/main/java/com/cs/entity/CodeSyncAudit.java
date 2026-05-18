@@ -7,13 +7,15 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.Lob;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "CODE_SYNC_AUDIT")
+@Table(name = "CODE_SYNC_AUDIT", indexes = { @Index(name = "IDX_AUDIT_CREATED_AT", columnList = "CREATED_AT"),
+		@Index(name = "IDX_AUDIT_CREATED_IP", columnList = "CREATED_AT, CLIENT_IP") })
 public class CodeSyncAudit {
 
 	@Id

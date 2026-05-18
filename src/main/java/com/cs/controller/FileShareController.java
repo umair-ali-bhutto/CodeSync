@@ -5,6 +5,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -36,6 +37,9 @@ import jakarta.servlet.http.HttpServletRequest;
 @RequestMapping("/api/files")
 public class FileShareController {
 
+	@Value("${codesync.max-total-files}")
+	private long maxTotalFiles;
+
 	private final CodeSyncSharedFileService fileService;
 
 	public FileShareController(CodeSyncSharedFileService fileService) {
@@ -43,7 +47,8 @@ public class FileShareController {
 	}
 
 	/**
-	 * Upload a file. Returns 201 on success, 413 if file is too large, 409 if file limit reached.
+	 * Upload a file. Returns 201 on success, 413 if file is too large, 409 if file
+	 * limit reached.
 	 */
 	@PostMapping("/{key}/upload")
 	public ResponseEntity<String> upload(@PathVariable String key, @RequestParam("file") MultipartFile file,
@@ -61,9 +66,9 @@ public class FileShareController {
 
 			// Enforce active file limit
 			long active = fileService.countActiveFiles(key);
-			if (active >= 10) { //edit get from backend
+			if (active >= maxTotalFiles) {
 				return ResponseEntity.status(HttpStatus.CONFLICT)
-						.body("File limit reached. Maximum 10 active files per share.");
+						.body("File limit reached. Maximum " + maxTotalFiles + " active files per share.");
 			}
 
 			CodeSyncSharedFile saved = fileService.store(key, file, ip, clientName);

@@ -15,11 +15,13 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.unit.DataSize;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.cs.config.CodeSyncLogger;
 import com.cs.dto.SharedFileDTO;
 import com.cs.entity.CodeSyncSharedFile;
+import com.cs.exception.FileSizeExceededException;
 import com.cs.repository.CodeSyncSharedFileRepository;
 
 /**
@@ -34,8 +36,8 @@ import com.cs.repository.CodeSyncSharedFileRepository;
 @Service
 public class CodeSyncSharedFileService {
 
-	/** Max allowed upload size: 100 MB */
-	public static final long MAX_FILE_SIZE = 100L * 1024 * 1024; // get from backend
+	@Value("${codesync.max-file-size}")
+	private DataSize maxFileSize;
 
 	private final CodeSyncSharedFileRepository repo;
 
@@ -54,6 +56,24 @@ public class CodeSyncSharedFileService {
 	@Value("${codesync.file-expiry.minutes:10}")
 	private long expiryMinutes;
 
+	@Value("${codesync.winscp.enabled:false}")
+	private boolean winScpEnabled;
+
+	@Value("${codesync.winscp.exe-path}")
+	private String winScpExePath;
+
+	@Value("${codesync.winscp.sftp-host:}")
+	private String winScpHost;
+
+	@Value("${codesync.winscp.sftp-user:}")
+	private String winScpUser;
+
+	@Value("${codesync.winscp.sftp-password:}")
+	private String winScpPassword;
+
+	@Value("${codesync.winscp.remote-base-path}")
+	private String winScpRemoteBasePath;
+
 	public CodeSyncSharedFileService(CodeSyncSharedFileRepository repo) {
 		this.repo = repo;
 	}
@@ -70,8 +90,9 @@ public class CodeSyncSharedFileService {
 	@Transactional
 	public CodeSyncSharedFile store(String shareKey, MultipartFile file, String uploaderIp, String uploaderName)
 			throws IOException {
-		if (file.getSize() > MAX_FILE_SIZE) {
-			throw new IllegalArgumentException("File exceeds maximum allowed size of 100 MB.");
+
+		if (file.getSize() > maxFileSize.toBytes()) {
+			throw new FileSizeExceededException(maxFileSize.toMegabytes());
 		}
 
 		String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
@@ -128,17 +149,8 @@ public class CodeSyncSharedFileService {
 	}
 
 	/**
-	 * Deletes the file from disk and removes its DB record.
+	 * Deletes the file from disk and updates its DB record.
 	 */
-//	@Transactional
-//	public void delete(String fileId) throws IOException {
-//		/* NOT DELETED FROM FILE SYSTEM FOR NOW --> UMAIR.ALI :-) */
-//
-	//// CodeSyncSharedFile f = findByFileId(fileId); / Path path =
-	/// Paths.get(f.getStoredPath()); / Files.deleteIfExists(path);
-//		repo.deleteByFileId(fileId);
-//	}
-
 	@Transactional
 	public void delete(String fileId) {
 		CodeSyncSharedFile f = findByFileId(fileId);
@@ -176,7 +188,7 @@ public class CodeSyncSharedFileService {
 
 		expired.forEach(f -> {
 			archiveFile(f);
-			CodeSyncLogger.logInfo("Expired File: "+f.getOriginalName());
+			CodeSyncLogger.logInfo("Expired File: " + f.getOriginalName());
 			f.setIsActive(false);
 			f.setDeletedAt(now);
 		});
@@ -192,27 +204,109 @@ public class CodeSyncSharedFileService {
 	private void archiveFile(CodeSyncSharedFile f) {
 		try {
 			Path source = Paths.get(f.getStoredPath());
-			if (!Files.exists(source))
-				return; // already gone, skip silently
+			if (!Files.exists(source)) {
+				CodeSyncLogger.logInfo("archiveFile: source not found, skipping: " + source);
+				return;
+			}
 
+			if (winScpEnabled) {
+				boolean scpSuccess = transferViaWinScp(f, source);
+				if (scpSuccess)
+					return; // done — file moved to Ubuntu and deleted locally
+				CodeSyncLogger.logInfo("archiveFile: WinSCP failed, falling back to local archive.");
+			}
+
+			// Fallback — move to local archive folder
+			moveToLocalArchive(f, source);
+		} catch (Exception e) {
+			CodeSyncLogger.logError(getClass(), "archiveFile Exception", e);
+		}
+	}
+
+	// ---- WinSCP transfer ----
+	private boolean transferViaWinScp(CodeSyncSharedFile f, Path source) {
+		Path scriptFile = null;
+		try {
+			// Remote directory mirrors shareKey structure
+			String remoteDir = winScpRemoteBasePath + "/" + f.getShareKey();
+			String ts = String.valueOf(System.currentTimeMillis());
+			String remotePath = remoteDir + "/" + ts + "_" + source.getFileName().toString();
+
+			// Build the WinSCP script dynamically
+			String script = String.join("\n", "option batch on", "option confirm off",
+					"open sftp://" + winScpUser + "@" + winScpHost + "/ -password=\"" + winScpPassword + "\"",
+					"mkdir " + remoteDir, // create remote dir if not exists (fails silently with batch on)
+					"put \"" + source.toAbsolutePath() + "\" " + remotePath, "exit");
+
+			CodeSyncLogger.logInfo("script: " + script);
+			// Write script to a temp file
+			scriptFile = Files.createTempFile("winscp_", ".txt");
+			Files.writeString(scriptFile, script);
+
+			CodeSyncLogger.logInfo("archiveFile: running WinSCP for file: " + source.getFileName());
+
+			// Build and run the process
+			ProcessBuilder pb = new ProcessBuilder(winScpExePath, "/script=" + scriptFile.toAbsolutePath());
+			pb.redirectErrorStream(true); // merge stderr into stdout
+
+			Process process = pb.start();
+
+			// Capture output for logging
+			String output = new String(process.getInputStream().readAllBytes());
+			boolean finished = process.waitFor(120, java.util.concurrent.TimeUnit.SECONDS);
+
+			if (!finished) {
+				process.destroyForcibly();
+				CodeSyncLogger.logInfo("archiveFile: WinSCP timed out after 120s.\n" + output);
+				return false;
+			}
+
+			int exitCode = process.exitValue();
+			CodeSyncLogger.logInfo("archiveFile: WinSCP exit code=" + exitCode + "\n" + output);
+
+			if (exitCode != 0) {
+				CodeSyncLogger.logInfo("archiveFile: WinSCP non-zero exit, treating as failure.");
+				return false;
+			}
+
+			// Success — delete local file and update DB path
+			Files.deleteIfExists(source);
+			f.setStoredPath(remotePath); // store the remote SFTP path in DB
+			CodeSyncLogger.logInfo("archiveFile: WinSCP success. Remote path saved: " + remotePath);
+			return true;
+
+		} catch (Exception e) {
+			CodeSyncLogger.logError(getClass(), "archiveFile WinSCP Exception", e);
+			return false;
+		} finally {
+			// Always clean up the temp script file
+			if (scriptFile != null) {
+				try {
+					Files.deleteIfExists(scriptFile);
+				} catch (Exception ignored) {
+				}
+			}
+		}
+	}
+
+	// ---- Local archive fallback ----
+	private void moveToLocalArchive(CodeSyncSharedFile f, Path source) {
+		try {
 			Path archiveDir = Paths.get(archiveDirectory, f.getShareKey());
 			Files.createDirectories(archiveDir);
 
 			Path destination = archiveDir.resolve(source.getFileName());
-
-			// If a file with same name already exists in archive, prefix with timestamp
 			if (Files.exists(destination)) {
 				String ts = String.valueOf(System.currentTimeMillis());
 				destination = archiveDir.resolve(ts + "_" + source.getFileName());
 			}
 
 			Files.move(source, destination, StandardCopyOption.REPLACE_EXISTING);
-
-			// Update stored path in entity so DB reflects the new location
 			f.setStoredPath(destination.toString());
+			CodeSyncLogger.logInfo("archiveFile: moved to local archive: " + destination);
 
 		} catch (Exception e) {
-			CodeSyncLogger.logError(getClass(), "archiveFile Exception", e);
+			CodeSyncLogger.logError(getClass(), "archiveFile local fallback Exception", e);
 		}
 	}
 
