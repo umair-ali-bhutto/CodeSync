@@ -45,6 +45,7 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 ### Added 03-JUN-2026
 
 - Winscp support so we can run on windows and still be able to move files to linux server (optional)
+- Fixed Minor Issues
 
 ---
 

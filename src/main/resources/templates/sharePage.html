@@ -1420,8 +1420,7 @@
                 list.appendChild(li);
             });
 
-            // closed Expiry ticker reload list
-            // if (files.some(f => f.expiresAt)) startExpiryTicker();
+            if (files.some(f => f.expiresAt)) startExpiryTicker();
         }
 
         let expiryTicker = null;
@@ -1437,12 +1436,13 @@
                     el.style.fontWeight = diff < 60000 ? '700' : '400';
                     if (diff <= 0) anyExpired = true;
                 });
+
                 // Refresh list when something expires so it disappears cleanly
-                if (anyExpired) {
-                    clearInterval(expiryTicker);
-                    expiryTicker = null;
-                    loadFileList();
-                }
+                // if (anyExpired) {
+                    // clearInterval(expiryTicker);
+                    // expiryTicker = null;
+                    // loadFileList();
+                // }
             }, 1000);
         }
 
