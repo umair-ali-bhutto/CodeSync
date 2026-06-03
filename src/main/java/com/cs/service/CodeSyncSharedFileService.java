@@ -76,6 +76,9 @@ public class CodeSyncSharedFileService {
 	@Value("${codesync.winscp.remote-base-path}")
 	private String winScpRemoteBasePath;
 
+	@Value("${codesync.winscp.script.directory}")
+	private String winScpScriptDirectory;
+
 	public CodeSyncSharedFileService(CodeSyncSharedFileRepository repo) {
 		this.repo = repo;
 	}
@@ -108,8 +111,11 @@ public class CodeSyncSharedFileService {
 		Files.createDirectories(dir);
 
 		Path destination = dir.resolve(storedName);
-		Files.copy(file.getInputStream(), destination, StandardCopyOption.REPLACE_EXISTING);
-
+//		try (var inputStream = file.getInputStream()) {
+//		    Files.copy(inputStream, destination, StandardCopyOption.REPLACE_EXISTING);
+//		}
+		file.transferTo(destination);
+		
 		CodeSyncSharedFile entity = new CodeSyncSharedFile();
 		entity.setShareKey(shareKey);
 		entity.setFileId(fileId);
@@ -293,6 +299,17 @@ public class CodeSyncSharedFileService {
 		return exists;
 	}
 
+	private Path getScriptDirectory() throws IOException {
+		Path dir = Paths.get(winScpScriptDirectory);
+
+		if (!Files.exists(dir)) {
+			Files.createDirectories(dir);
+			CodeSyncLogger.logInfo("Created directory: " + dir);
+		}
+
+		return dir;
+	}
+
 	// ---- Test SFTP connectivity with a minimal script ----
 	private boolean isServerReachable() {
 		Path scriptFile = null;
@@ -300,7 +317,9 @@ public class CodeSyncSharedFileService {
 			String script = String.join("\n", "option batch on", "option confirm off",
 					"open sftp://" + winScpUser + "@" + winScpHost + "/ -password=\"" + winScpPassword + "\"", "pwd",
 					"exit");
-			scriptFile = Files.createTempFile("winscp_ping_", ".txt");
+			Path scriptDir = getScriptDirectory();
+			CodeSyncLogger.logInfo("Ping: script=\n" + script);
+			scriptFile = Files.createTempFile(scriptDir, "winscp_ping_", ".txt");
 			Files.writeString(scriptFile, script);
 
 			ProcessBuilder pb = new ProcessBuilder(winScpExePath, "/script=" + scriptFile.toAbsolutePath());
@@ -375,7 +394,8 @@ public class CodeSyncSharedFileService {
 			String script = sb.toString();
 			CodeSyncLogger.logInfo("transferAllViaWinScp: script=\n" + script);
 
-			scriptFile = Files.createTempFile("winscp_batch_", ".txt");
+			Path scriptDir = getScriptDirectory();
+			scriptFile = Files.createTempFile(scriptDir, "winscp_batch_", ".txt");
 			Files.writeString(scriptFile, script);
 
 			ProcessBuilder pb = new ProcessBuilder(winScpExePath, "/script=" + scriptFile.toAbsolutePath());

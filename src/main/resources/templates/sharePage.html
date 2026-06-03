@@ -1420,7 +1420,8 @@
                 list.appendChild(li);
             });
 
-            if (files.some(f => f.expiresAt)) startExpiryTicker();
+            // closed Expiry ticker reload list
+            // if (files.some(f => f.expiresAt)) startExpiryTicker();
         }
 
         let expiryTicker = null;
