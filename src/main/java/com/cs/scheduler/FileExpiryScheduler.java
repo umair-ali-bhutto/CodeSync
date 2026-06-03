@@ -1,5 +1,6 @@
 package com.cs.scheduler;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -13,6 +14,9 @@ import com.cs.service.CodeSyncSharedFileService;
 @Component
 public class FileExpiryScheduler {
 
+	@Value("${codesync.file-expiry.cron.enabled:false}")
+	private Boolean schedularEnabled;
+
 	private final CodeSyncSharedFileService fileService;
 
 	public FileExpiryScheduler(CodeSyncSharedFileService fileService) {
@@ -21,8 +25,11 @@ public class FileExpiryScheduler {
 
 	@Scheduled(cron = "${codesync.file-expiry.cron}")
 	public void runExpiryCheck() {
-		CodeSyncLogger.logInfo("FileExpiryScheduler: running expiry check...");
+		if (!schedularEnabled)
+			return;
+
 		try {
+			CodeSyncLogger.logInfo("FileExpiryScheduler: running expiry check...");
 			int count = fileService.expireFiles();
 			if (count > 0) {
 				CodeSyncLogger.logInfo("FileExpiryScheduler: expired " + count + " file(s).");
@@ -32,5 +39,6 @@ public class FileExpiryScheduler {
 		} catch (Exception e) {
 			CodeSyncLogger.logError(FileExpiryScheduler.class, "FileExpiryScheduler", e);
 		}
+
 	}
 }

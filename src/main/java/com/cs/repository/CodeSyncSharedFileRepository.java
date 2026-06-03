@@ -30,4 +30,6 @@ public interface CodeSyncSharedFileRepository extends JpaRepository<CodeSyncShar
 	long countByShareKeyAndIsActiveTrue(String shareKey);
 
 	List<CodeSyncSharedFile> findByIsActiveTrueAndExpiresAtBefore(Timestamp now);
+
+	List<CodeSyncSharedFile> findByIsActiveFalseAndIsFileMovedFalse();
 }

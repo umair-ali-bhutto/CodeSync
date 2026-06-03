@@ -26,27 +26,21 @@ public class CodeSyncSharedFile {
 	@SequenceGenerator(name = "CODE_SYNC_SHARED_FILE_SEQ", sequenceName = "CODE_SYNC_SHARED_FILE_SEQ", allocationSize = 1)
 	private Long id;
 
-	/** The share key this file belongs to (matches CodeSync.shareKey). */
 	@Column(name = "SHARE_KEY", nullable = false, length = 100)
 	private String shareKey;
 
-	/** UUID used in the filesystem path and download URL. */
 	@Column(name = "FILE_ID", nullable = false, unique = true, length = 64)
 	private String fileId;
 
-	/** Original filename as uploaded by the user. */
 	@Column(name = "ORIGINAL_NAME", nullable = false, length = 512)
 	private String originalName;
 
-	/** MIME type detected or provided at upload time. */
 	@Column(name = "CONTENT_TYPE", length = 128)
 	private String contentType;
 
-	/** File size in bytes. */
 	@Column(name = "FILE_SIZE")
 	private Long fileSize;
 
-	/** Path on disk relative to the configured upload root. */
 	@Column(name = "STORED_PATH", nullable = false, length = 1024)
 	private String storedPath;
 
@@ -73,6 +67,9 @@ public class CodeSyncSharedFile {
 
 	@Column(name = "EXPIRES_AT")
 	private Timestamp expiresAt;
+
+	@Column(name = "IS_FILE_MOVED", nullable = false)
+	private Boolean isFileMoved = false;
 
 	@PrePersist
 	public void onCreate() {
@@ -199,6 +196,14 @@ public class CodeSyncSharedFile {
 
 	public void setExpiresAt(Timestamp expiresAt) {
 		this.expiresAt = expiresAt;
+	}
+
+	public Boolean getIsFileMoved() {
+		return isFileMoved;
+	}
+
+	public void setIsFileMoved(Boolean isFileMoved) {
+		this.isFileMoved = isFileMoved;
 	}
 
 }

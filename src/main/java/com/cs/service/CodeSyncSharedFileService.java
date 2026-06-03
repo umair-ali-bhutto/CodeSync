@@ -8,7 +8,9 @@ import java.nio.file.StandardCopyOption;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -95,11 +97,11 @@ public class CodeSyncSharedFileService {
 			throw new FileSizeExceededException(maxFileSize.toMegabytes());
 		}
 
-		String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+		String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
 
 		String fileId = UUID.randomUUID().toString();
 		String safeName = sanitizeFilename(file.getOriginalFilename());
-		String storedName = fileId + "_T-" + timestamp + "_" + safeName;
+		String storedName = fileId + "_T-" + timestamp + "___" + safeName;
 
 		// Create per-shareKey folder
 		Path dir = Paths.get(uploadDir, shareKey);
@@ -198,6 +200,37 @@ public class CodeSyncSharedFileService {
 		return expired.size();
 	}
 
+	@Transactional
+	public int moveExpiredFiles() {
+		List<CodeSyncSharedFile> expired = repo.findByIsActiveFalseAndIsFileMovedFalse();
+		if (expired.isEmpty())
+			return 0;
+
+		if (winScpEnabled) {
+			// Validate WinSCP executable exists before doing anything
+			if (!isWinScpAvailable()) {
+				CodeSyncLogger.logInfo("moveExpiredFiles: WinSCP not found at path: " + winScpExePath + " — skipping.");
+				return 0;
+			}
+
+			// Test connectivity before building the full script
+			if (!isServerReachable()) {
+				CodeSyncLogger.logInfo("moveExpiredFiles: Cannot reach SFTP server " + winScpHost + " — skipping.");
+				return 0;
+			}
+
+			// Transfer all files in a single WinSCP session
+			List<CodeSyncSharedFile> succeeded = transferAllViaWinScp(expired);
+			repo.saveAll(expired); // save updated storedPath + isFileMoved for all
+			CodeSyncLogger.logInfo(
+					"moveExpiredFiles: WinSCP transferred " + succeeded.size() + "/" + expired.size() + " file(s).");
+			return succeeded.size();
+		}
+
+		CodeSyncLogger.logInfo("moveExpiredFiles: WinSCP not enabled.");
+		return 0;
+	}
+
 	// ---- Private helpers ----
 
 	// ---- Archive helper ----
@@ -208,88 +241,12 @@ public class CodeSyncSharedFileService {
 				CodeSyncLogger.logInfo("archiveFile: source not found, skipping: " + source);
 				return;
 			}
-
-			if (winScpEnabled) {
-				boolean scpSuccess = transferViaWinScp(f, source);
-				if (scpSuccess)
-					return; // done — file moved to Ubuntu and deleted locally
-				CodeSyncLogger.logInfo("archiveFile: WinSCP failed, falling back to local archive.");
-			}
-
-			// Fallback — move to local archive folder
 			moveToLocalArchive(f, source);
 		} catch (Exception e) {
 			CodeSyncLogger.logError(getClass(), "archiveFile Exception", e);
 		}
 	}
 
-	// ---- WinSCP transfer ----
-	private boolean transferViaWinScp(CodeSyncSharedFile f, Path source) {
-		Path scriptFile = null;
-		try {
-			// Remote directory mirrors shareKey structure
-			String remoteDir = winScpRemoteBasePath + "/" + f.getShareKey();
-			String ts = String.valueOf(System.currentTimeMillis());
-			String remotePath = remoteDir + "/" + ts + "_" + source.getFileName().toString();
-
-			// Build the WinSCP script dynamically
-			String script = String.join("\n", "option batch on", "option confirm off",
-					"open sftp://" + winScpUser + "@" + winScpHost + "/ -password=\"" + winScpPassword + "\"",
-					"mkdir " + remoteDir, // create remote dir if not exists (fails silently with batch on)
-					"put \"" + source.toAbsolutePath() + "\" " + remotePath, "exit");
-
-			CodeSyncLogger.logInfo("script: " + script);
-			// Write script to a temp file
-			scriptFile = Files.createTempFile("winscp_", ".txt");
-			Files.writeString(scriptFile, script);
-
-			CodeSyncLogger.logInfo("archiveFile: running WinSCP for file: " + source.getFileName());
-
-			// Build and run the process
-			ProcessBuilder pb = new ProcessBuilder(winScpExePath, "/script=" + scriptFile.toAbsolutePath());
-			pb.redirectErrorStream(true); // merge stderr into stdout
-
-			Process process = pb.start();
-
-			// Capture output for logging
-			String output = new String(process.getInputStream().readAllBytes());
-			boolean finished = process.waitFor(120, java.util.concurrent.TimeUnit.SECONDS);
-
-			if (!finished) {
-				process.destroyForcibly();
-				CodeSyncLogger.logInfo("archiveFile: WinSCP timed out after 120s.\n" + output);
-				return false;
-			}
-
-			int exitCode = process.exitValue();
-			CodeSyncLogger.logInfo("archiveFile: WinSCP exit code=" + exitCode + "\n" + output);
-
-			if (exitCode != 0) {
-				CodeSyncLogger.logInfo("archiveFile: WinSCP non-zero exit, treating as failure.");
-				return false;
-			}
-
-			// Success — delete local file and update DB path
-			Files.deleteIfExists(source);
-			f.setStoredPath(remotePath); // store the remote SFTP path in DB
-			CodeSyncLogger.logInfo("archiveFile: WinSCP success. Remote path saved: " + remotePath);
-			return true;
-
-		} catch (Exception e) {
-			CodeSyncLogger.logError(getClass(), "archiveFile WinSCP Exception", e);
-			return false;
-		} finally {
-			// Always clean up the temp script file
-			if (scriptFile != null) {
-				try {
-					Files.deleteIfExists(scriptFile);
-				} catch (Exception ignored) {
-				}
-			}
-		}
-	}
-
-	// ---- Local archive fallback ----
 	private void moveToLocalArchive(CodeSyncSharedFile f, Path source) {
 		try {
 			Path archiveDir = Paths.get(archiveDirectory, f.getShareKey());
@@ -297,8 +254,8 @@ public class CodeSyncSharedFileService {
 
 			Path destination = archiveDir.resolve(source.getFileName());
 			if (Files.exists(destination)) {
-				String ts = String.valueOf(System.currentTimeMillis());
-				destination = archiveDir.resolve(ts + "_" + source.getFileName());
+				String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
+				destination = archiveDir.resolve("T_" + timestamp + "___" + source.getFileName());
 			}
 
 			Files.move(source, destination, StandardCopyOption.REPLACE_EXISTING);
@@ -326,4 +283,159 @@ public class CodeSyncSharedFileService {
 		// Strip path separators and dangerous characters
 		return name.replaceAll("[/\\\\:*?\"<>|]", "_").trim();
 	}
+
+	// ---- Validate WinSCP exe exists on disk ----
+	private boolean isWinScpAvailable() {
+		Path exe = Paths.get(winScpExePath);
+		boolean exists = Files.exists(exe);
+		if (!exists)
+			CodeSyncLogger.logInfo("WinSCP exe not found: " + exe.toAbsolutePath());
+		return exists;
+	}
+
+	// ---- Test SFTP connectivity with a minimal script ----
+	private boolean isServerReachable() {
+		Path scriptFile = null;
+		try {
+			String script = String.join("\n", "option batch on", "option confirm off",
+					"open sftp://" + winScpUser + "@" + winScpHost + "/ -password=\"" + winScpPassword + "\"", "pwd",
+					"exit");
+			scriptFile = Files.createTempFile("winscp_ping_", ".txt");
+			Files.writeString(scriptFile, script);
+
+			ProcessBuilder pb = new ProcessBuilder(winScpExePath, "/script=" + scriptFile.toAbsolutePath());
+			pb.redirectErrorStream(true);
+			Process process = pb.start();
+			String output = new String(process.getInputStream().readAllBytes());
+			boolean finished = process.waitFor(30, java.util.concurrent.TimeUnit.SECONDS);
+
+			if (!finished) {
+				process.destroyForcibly();
+				CodeSyncLogger.logInfo("isServerReachable: timed out.");
+				return false;
+			}
+
+			int exitCode = process.exitValue();
+			boolean reachable = exitCode == 0
+					&& (output.contains("Session started") || output.contains("Active session"));
+			CodeSyncLogger.logInfo("isServerReachable: exitCode=" + exitCode + " reachable=" + reachable);
+			return reachable;
+
+		} catch (Exception e) {
+			CodeSyncLogger.logError(getClass(), "isServerReachable", e);
+			return false;
+		} finally {
+			if (scriptFile != null)
+				try {
+					Files.deleteIfExists(scriptFile);
+				} catch (Exception ignored) {
+				}
+		}
+	}
+
+	// ---- Transfer ALL files in one WinSCP session ----
+	private List<CodeSyncSharedFile> transferAllViaWinScp(List<CodeSyncSharedFile> files) {
+		Path scriptFile = null;
+		List<CodeSyncSharedFile> succeeded = new java.util.ArrayList<>();
+
+		// Build (remoteDir → [file]) map so we mkdir each unique dir only once
+		Map<String, List<CodeSyncSharedFile>> byDir = files.stream()
+				.filter(f -> Files.exists(Paths.get(f.getStoredPath())))
+				.collect(Collectors.groupingBy(f -> winScpRemoteBasePath + "/" + f.getShareKey()));
+
+		if (byDir.isEmpty()) {
+			CodeSyncLogger.logInfo("transferAllViaWinScp: no source files exist on disk.");
+			return succeeded;
+		}
+
+		try {
+			// Precompute remote paths so we can match them after transfer
+			Map<String, String> fileIdToRemotePath = new LinkedHashMap<>();
+			StringBuilder sb = new StringBuilder();
+			sb.append("option batch on\n");
+			sb.append("option confirm off\n");
+			sb.append("open sftp://").append(winScpUser).append("@").append(winScpHost).append("/ -password=\"")
+					.append(winScpPassword).append("\"\n");
+
+			for (Map.Entry<String, List<CodeSyncSharedFile>> entry : byDir.entrySet()) {
+				String remoteDir = entry.getKey();
+				sb.append("call mkdir -p \"").append(remoteDir).append("\"\n");
+
+				for (CodeSyncSharedFile f : entry.getValue()) {
+					Path source = Paths.get(f.getStoredPath());
+					String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
+					String remotePath = remoteDir + "/T_" + timestamp + "___" + source.getFileName().toString();
+					fileIdToRemotePath.put(f.getFileId(), remotePath);
+					sb.append("put \"").append(source.toAbsolutePath()).append("\" \"").append(remotePath)
+							.append("\"\n");
+				}
+			}
+			sb.append("exit\n");
+
+			String script = sb.toString();
+			CodeSyncLogger.logInfo("transferAllViaWinScp: script=\n" + script);
+
+			scriptFile = Files.createTempFile("winscp_batch_", ".txt");
+			Files.writeString(scriptFile, script);
+
+			ProcessBuilder pb = new ProcessBuilder(winScpExePath, "/script=" + scriptFile.toAbsolutePath());
+			pb.redirectErrorStream(true);
+			Process process = pb.start();
+			String output = new String(process.getInputStream().readAllBytes());
+			boolean finished = process.waitFor(600, java.util.concurrent.TimeUnit.SECONDS); // 10 min for batch
+
+			if (!finished) {
+				process.destroyForcibly();
+				CodeSyncLogger.logInfo("transferAllViaWinScp: timed out after 300s.\n" + output);
+				return succeeded;
+			}
+
+			int exitCode = process.exitValue();
+			CodeSyncLogger.logInfo("transferAllViaWinScp: exitCode=" + exitCode + "\n" + output);
+
+			// Parse output — each successful transfer prints "filename | size | speed |
+			// 100%"
+			// Mark individual files as succeeded by checking if their filename appears with
+			// 100%
+			for (CodeSyncSharedFile f : files) {
+				Path source = Paths.get(f.getStoredPath());
+				String fileName = source.getFileName().toString();
+				String remotePath = fileIdToRemotePath.get(f.getFileId());
+
+				if (remotePath == null) {
+					CodeSyncLogger.logInfo("transferAllViaWinScp: skipped (no source): " + fileName);
+					continue;
+				}
+
+				// Check output contains the filename with 100% completion
+				boolean thisFileTransferred = output.contains(fileName) && output.contains("100%");
+
+				if (thisFileTransferred) {
+					try {
+						Files.deleteIfExists(source);
+					} catch (Exception ex) {
+						CodeSyncLogger.logError(getClass(), "delete after transfer: " + fileName, ex);
+					}
+					f.setStoredPath(remotePath);
+					f.setIsFileMoved(true);
+					succeeded.add(f);
+					CodeSyncLogger.logInfo("transferAllViaWinScp: ✅ moved: " + fileName + " → " + remotePath);
+				} else {
+					CodeSyncLogger.logInfo("transferAllViaWinScp: ❌ not confirmed in output: " + fileName);
+				}
+			}
+
+		} catch (Exception e) {
+			CodeSyncLogger.logError(getClass(), "transferAllViaWinScp", e);
+		} finally {
+			if (scriptFile != null)
+				try {
+					Files.deleteIfExists(scriptFile);
+				} catch (Exception ignored) {
+				}
+		}
+
+		return succeeded;
+	}
+
 }

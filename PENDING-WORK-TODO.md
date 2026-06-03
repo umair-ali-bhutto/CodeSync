@@ -2,6 +2,8 @@
 
 
 
+
+
 resilliance 4j
 
 Good, I have everything I need. Here's what you need to do — it's a two-part change: config + controller update.
@@ -690,3 +692,5 @@ Jprofiler visualvm actuator micrometer zipkin graalvm springcontextindexer
 	// please download data in excel in dashboard please
 	// show name with ip in below table in dashboard as well i only see ip
   // modify dash board and make it more feature rich with filters and also file download this a s well
+
+  add feature for download all to convert to zip and download zip only for all files

@@ -2,6 +2,8 @@ package com.cs.config;
 
 import org.springframework.stereotype.Component;
 
+import com.mysql.cj.jdbc.AbandonedConnectionCleanupThread;
+
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 
@@ -46,6 +48,7 @@ public class StartUpInit {
 	public void destroy() {
 		setEnableLogs("Y");
 		CodeSyncLogger.logInfo("DESTROY CALLED");
+		AbandonedConnectionCleanupThread.checkedShutdown();
 	}
 
 	/**
