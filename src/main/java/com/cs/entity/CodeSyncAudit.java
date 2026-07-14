@@ -87,6 +87,10 @@ public class CodeSyncAudit {
 	@Column(name = "UPLOADED_FILE_SIZE")
 	private Long uploadedFileSize;
 
+	@Lob
+	@Column(name = "ADDITIONAL_INFO")
+	private String additionalInfo;
+
 	@PrePersist
 	public void onCreate() {
 		createdAt = new Timestamp(System.currentTimeMillis());
@@ -268,6 +272,14 @@ public class CodeSyncAudit {
 
 	public void setUploadedFileSize(Long uploadedFileSize) {
 		this.uploadedFileSize = uploadedFileSize;
+	}
+
+	public String getAdditionalInfo() {
+		return additionalInfo;
+	}
+
+	public void setAdditionalInfo(String additionalInfo) {
+		this.additionalInfo = additionalInfo;
 	}
 
 }

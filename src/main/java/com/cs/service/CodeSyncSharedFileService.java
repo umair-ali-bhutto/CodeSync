@@ -26,6 +26,9 @@ import com.cs.entity.CodeSyncSharedFile;
 import com.cs.exception.FileSizeExceededException;
 import com.cs.repository.CodeSyncSharedFileRepository;
 
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
+
 /**
  * Handles file upload, listing, download, and deletion for a share key.
  *
@@ -93,6 +96,8 @@ public class CodeSyncSharedFileService {
 	 * @throws IOException              on I/O failure
 	 */
 	@Transactional
+	@Retry(name = "codeSyncService")
+	@CircuitBreaker(name = "codeSyncService")
 	public CodeSyncSharedFile store(String shareKey, MultipartFile file, String uploaderIp, String uploaderName)
 			throws IOException {
 
@@ -104,18 +109,26 @@ public class CodeSyncSharedFileService {
 
 		String fileId = UUID.randomUUID().toString();
 		String safeName = sanitizeFilename(file.getOriginalFilename());
+		if (safeName.contains("\0") || safeName.contains("%00")) {
+			throw new IllegalArgumentException("Invalid filename");
+		}
 		String storedName = fileId + "_T-" + timestamp + "___" + safeName;
 
-		// Create per-shareKey folder
-		Path dir = Paths.get(uploadDir, shareKey);
+		// Create per-shareKey folder (path traversal safe)
+		Path baseUploadDir = Paths.get(uploadDir).toAbsolutePath().normalize();
+		Path dir = baseUploadDir.resolve(shareKey).normalize();
+		if (!dir.startsWith(baseUploadDir)) {
+			throw new IllegalArgumentException("Invalid share key.");
+		}
+
 		Files.createDirectories(dir);
 
-		Path destination = dir.resolve(storedName);
-//		try (var inputStream = file.getInputStream()) {
-//		    Files.copy(inputStream, destination, StandardCopyOption.REPLACE_EXISTING);
-//		}
+		Path destination = dir.resolve(storedName).normalize();
+		// try (var inputStream = file.getInputStream()) {
+		// Files.copy(inputStream, destination, StandardCopyOption.REPLACE_EXISTING);
+		// }
 		file.transferTo(destination);
-		
+
 		CodeSyncSharedFile entity = new CodeSyncSharedFile();
 		entity.setShareKey(shareKey);
 		entity.setFileId(fileId);
@@ -207,6 +220,7 @@ public class CodeSyncSharedFileService {
 	}
 
 	@Transactional
+	@Retry(name = "codeSyncService", fallbackMethod = "transferFallback")
 	public int moveExpiredFiles() {
 		List<CodeSyncSharedFile> expired = repo.findByIsActiveFalseAndIsFileMovedFalse();
 		if (expired.isEmpty())
@@ -235,6 +249,13 @@ public class CodeSyncSharedFileService {
 
 		CodeSyncLogger.logInfo("moveExpiredFiles: WinSCP not enabled.");
 		return 0;
+	}
+
+	/**
+	 * Returns all active file entities for the given share key.
+	 */
+	public List<CodeSyncSharedFile> findActiveFiles(String shareKey) {
+		return repo.findByShareKeyAndIsActiveTrueOrderByUploadedAtDesc(shareKey);
 	}
 
 	// ---- Private helpers ----
@@ -456,6 +477,11 @@ public class CodeSyncSharedFileService {
 		}
 
 		return succeeded;
+	}
+
+	public int transferFallback(Throwable ex) {
+		CodeSyncLogger.logInfo(getClass(), "SFTP transfer failed <------> " + ex.getMessage());
+		return 0;
 	}
 
 }

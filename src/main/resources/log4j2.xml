@@ -33,7 +33,7 @@
 				compressionLevel="9">
 				<Delete basePath="${LOG_ARCHIVE_DIR}" maxDepth="1">
 					<IfFileName glob="${LOG_FILE}-*.log.gz" />
-					<IfLastModified age="60d" />
+					<IfLastModified age="10d" />
 				</Delete>
 			</DefaultRolloverStrategy>
 

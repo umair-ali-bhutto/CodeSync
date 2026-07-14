@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import com.cs.config.CodeSyncLogger;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 /**
  * Handles all application-level exceptions.
  */
@@ -18,19 +20,25 @@ import com.cs.config.CodeSyncLogger;
 public class GlobalExceptionHandler {
 
 	@ExceptionHandler(ShareNotFoundException.class)
-	public ResponseEntity<String> handleNotFound(ShareNotFoundException ex) {
+	public ResponseEntity<String> handleNotFound(ShareNotFoundException ex, HttpServletRequest request) {
+		if (isBrowserRequest(request))
+			return null;
 		CodeSyncLogger.logError(ex.getMessage(), ex);
 		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
 	}
 
 	@ExceptionHandler(IllegalArgumentException.class)
-	public ResponseEntity<String> handleBadKey(IllegalArgumentException ex) {
+	public ResponseEntity<String> handleBadKey(IllegalArgumentException ex, HttpServletRequest request) {
+		if (isBrowserRequest(request))
+			return null;
 		CodeSyncLogger.logError(ex.getMessage(), ex);
 		return ResponseEntity.badRequest().body("Invalid Share Key");
 	}
 
 	@ExceptionHandler(Exception.class)
-	public ResponseEntity<String> handleGeneric(Exception ex) {
+	public ResponseEntity<String> handleGeneric(Exception ex, HttpServletRequest request) {
+		if (isBrowserRequest(request))
+			return null;
 		CodeSyncLogger.logError("Unhandled error", ex);
 		return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Internal server error");
 	}
@@ -46,5 +54,10 @@ public class GlobalExceptionHandler {
 		body.put("message", ex.getMessage());
 
 		return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body(body);
+	}
+
+	private boolean isBrowserRequest(HttpServletRequest request) {
+		String accept = request.getHeader("Accept");
+		return accept != null && accept.contains("text/html");
 	}
 }

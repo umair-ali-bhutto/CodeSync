@@ -16,28 +16,18 @@ import jakarta.servlet.http.HttpServletResponse;
  * Custom Spring Security authentication entry point used to handle unauthorized
  * access attempts.
  * <p>
- * Instead of returning the default JSON or plain 401 response, this class
- * returns a user-friendly HTML error page explaining how to correctly access
- * the application endpoints.
+ * Behaviour varies by request type:
+ * <ul>
+ * <li>API requests ({@code /api/**}, {@code /logsService/**}) → JSON 401</li>
+ * <li>Share requests ({@code /share/**}) → HTML usage-instructions page</li>
+ * <li>Browser requests (everything else) → redirect to {@code /login}</li>
+ * </ul>
  */
 @Component
 public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint, Serializable {
 
 	private static final long serialVersionUID = -7858869558953243875L;
 
-	/**
-	 * Triggered automatically by Spring Security when an unauthenticated user
-	 * attempts to access a protected resource.
-	 * <p>
-	 * This method delegates the response rendering to
-	 * {@link CodeSyncUtil#getHtmlErrorPage(HttpServletResponse)} to return a custom
-	 * HTML error page with usage instructions.
-	 *
-	 * @param request       the incoming HTTP request
-	 * @param response      the HTTP response to be written
-	 * @param authException the exception that caused the authentication failure
-	 * @throws IOException if writing the response fails
-	 */
 	@Override
 	public void commence(HttpServletRequest request, HttpServletResponse response,
 			AuthenticationException authException) throws IOException {
@@ -46,19 +36,44 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint, Se
 		String requestedWith = request.getHeader("X-Requested-With");
 		String uri = request.getRequestURI();
 
-		// ✅ Don't redirect if already on login page — breaks the loop
 		boolean isLoginPage = uri.contains("/login");
-
+		boolean isApiRequest = uri.startsWith("/api/") || uri.startsWith("/logsService");
+		boolean isShareRequest = uri.startsWith(request.getContextPath() + "/share/") || uri.startsWith("/share/");
 		boolean isBrowserRequest = acceptHeader != null && acceptHeader.contains("text/html")
 				&& !"XMLHttpRequest".equals(requestedWith);
 
-		boolean isApiRequest = uri.startsWith("/api/") || uri.startsWith("/logsService") || uri.startsWith("/share/");
+		if (isApiRequest) {
+			// ── REST / programmatic callers ──────────────────────────────────
+			writeJsonUnauthorized(response);
 
-		if (isBrowserRequest && !isApiRequest && !isLoginPage) {
+		} else if (isBrowserRequest && isShareRequest) {
+			// ── Public share links opened without a token ────────────────────
+			CodeSyncUtil.getHtmlErrorPage(request, response);
+
+		} else if (isBrowserRequest && !isLoginPage) {
+			// ── Normal browser navigation ────────────────────────────────────
 			response.sendRedirect(request.getContextPath() + "/login");
+
 		} else {
-			CodeSyncUtil.getHtmlErrorPage(response);
+			// ── Fallback (e.g. XMLHttpRequest to a non-/api/ route) ──────────
+			writeJsonUnauthorized(response);
 		}
 	}
 
+	// -------------------------------------------------------------------------
+	// Helpers
+	// -------------------------------------------------------------------------
+
+	private void writeJsonUnauthorized(HttpServletResponse response) throws IOException {
+		response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+		response.setContentType("application/json");
+		response.setCharacterEncoding("UTF-8");
+		response.getWriter().write("""
+				{
+				  "status": 401,
+				  "error": "Unauthorized",
+				  "message": "Authentication required. Please provide a valid Bearer token."
+				}
+				""");
+	}
 }

@@ -80,7 +80,7 @@ public class SecurityConfig {
 						.requestMatchers("/login", "/login/**").permitAll()
 
 						// For ERROR PAGE
-						.requestMatchers("/access-denied").permitAll()
+						.requestMatchers("/access-denied", "/blocked-ip").permitAll()
 
 						// Secure Actuator
 						.requestMatchers("/actuator/**").hasRole("ADMIN")
@@ -89,6 +89,10 @@ public class SecurityConfig {
 						.requestMatchers("/admin/dashboard").authenticated()
 						.requestMatchers("/admin/dashboard/download").hasRole("ADMIN")
 						.requestMatchers("/admin/dashboard/status").hasRole("ADMIN")
+						.requestMatchers("/admin/ip-management/**").hasRole("ADMIN")
+
+						// swagger
+						.requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").hasRole("ADMIN")
 
 						// EVERYTHING ELSE
 						.anyRequest().authenticated())
@@ -157,6 +161,12 @@ public class SecurityConfig {
 			protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
 					FilterChain filterChain) throws ServletException, IOException {
 
+				String uri = request.getRequestURI();
+				if (uri.endsWith("/blocked-ip")) {
+					filterChain.doFilter(request, response);
+					return;
+				}
+
 				ContentCachingRequestWrapper wrappedRequest = new ContentCachingRequestWrapper(request, 0);
 				ContentCachingResponseWrapper wrappedResponse = new ContentCachingResponseWrapper(response);
 
@@ -165,25 +175,32 @@ public class SecurityConfig {
 
 				// 🚫 IP BLOCKING
 				if (protectionConfig.isBlocked(clientIp)) {
-					wrappedResponse.setStatus(HttpServletResponse.SC_FORBIDDEN);
-					wrappedResponse.getWriter().write("Sorry IP blocked");
-					logAndAudit(wrappedRequest, wrappedResponse, clientIp, start);
+					String blockId = CodeSyncUtil.generateBlockRef(clientIp);
+
+					wrappedRequest.setAttribute("blockedIp", clientIp);
+					wrappedRequest.setAttribute("blockId", blockId);
+
+					logAndAudit(wrappedRequest, wrappedResponse, clientIp, start, "blockId: " + blockId);
+
+					request.setAttribute("blockedIp", clientIp);
+					request.setAttribute("blockId", blockId);
+					request.getRequestDispatcher("/blocked-ip").forward(request, response);
 					return;
 				}
 
-				String uri = request.getRequestURI();
-
-				if (uri.startsWith("/codesync/share/")) {
+				if (uri.startsWith(request.getContextPath() + "/share/")) {
 
 					String key = uri.substring(uri.lastIndexOf("/") + 1);
 
 					// invalid cases
 					if (key.isEmpty() || key.length() > 100 || key.contains("/")) {
+						logAndAudit(wrappedRequest, wrappedResponse, clientIp, start, "Invalid Share Key");
+
 						// Trick Spring Security into calling JwtAuthenticationEntryPoint
 						jwtAuthenticationEntryPoint.commence(request, response,
 								new org.springframework.security.authentication.BadCredentialsException(
 										"Invalid Share Key"));
-						logAndAudit(wrappedRequest, wrappedResponse, clientIp, start);
+
 						return;
 					}
 				}
@@ -193,7 +210,7 @@ public class SecurityConfig {
 				if (!bucket.tryConsume(1)) {
 					wrappedResponse.setStatus(429);
 					wrappedResponse.getWriter().write("Too many requests");
-					logAndAudit(wrappedRequest, wrappedResponse, clientIp, start);
+					logAndAudit(wrappedRequest, wrappedResponse, clientIp, start, "Too many requests");
 					return;
 				}
 
@@ -202,7 +219,7 @@ public class SecurityConfig {
 				} catch (Exception e) {
 					CodeSyncLogger.logError(getClass(), "FILTER Exception", e);
 				} finally {
-					logAndAudit(wrappedRequest, wrappedResponse, clientIp, start);
+					logAndAudit(wrappedRequest, wrappedResponse, clientIp, start, "");
 				}
 			}
 		};
@@ -212,7 +229,7 @@ public class SecurityConfig {
 	 * Extracts and logs request details and inserts it into audit.
 	 */
 	private void logAndAudit(ContentCachingRequestWrapper request, ContentCachingResponseWrapper response,
-			String clientIp, long startTime) throws IOException {
+			String clientIp, long startTime, String additionalData) throws IOException {
 		String method = request.getMethod();
 		String uri = request.getRequestURI();
 		String query = request.getQueryString();
@@ -272,6 +289,7 @@ public class SecurityConfig {
 		log.setHost(host);
 		log.setSecFetchSiteModeDest(secFetchSite + " | " + secFetchMode + " | " + secFetchDest);
 		log.setSecChUaPlatformMobile(secChUa + " | " + secChUaPlatform + " | " + secChUaMobile);
+		log.setAdditionalInfo(additionalData);
 
 		String bodyLog = (body.length() <= 50000) ? " | Body=" + body : " | Body too large not logging";
 		String responseLog = (responseBody.length() <= 50000) ? " | Response=" + responseBody

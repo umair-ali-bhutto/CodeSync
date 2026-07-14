@@ -76,10 +76,13 @@ public class CodeSyncUtil {
 	 * @return the same response object after modification
 	 * @throws IOException if writing to the response fails
 	 */
-	public static HttpServletResponse getHtmlErrorPage(HttpServletResponse response) throws IOException {
+	public static HttpServletResponse getHtmlErrorPage(HttpServletRequest request, HttpServletResponse response)
+			throws IOException {
 		// Set response to HTML content type
 		response.setContentType("text/html");
 		response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+		String exampleUrl = request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort()
+				+ request.getContextPath() + "/share/yourendpoint";
 		response.getWriter().write("\n" + "			<!DOCTYPE html>\n" + "			<html lang=\"en\">\n"
 				+ "			<head>\n" + "				<meta charset=\"UTF-8\">\n"
 				+ "				<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n"
@@ -91,9 +94,10 @@ public class CodeSyncUtil {
 				+ "				<h1>401 Unauthorized</h1>\n"
 				+ "				<p>You are not authorized to access this resource.</p>\n"
 				+ "				<p><strong>Correct way to use this URL:</strong></p>\n" + "				<ul>\n"
-				+ "					<li>Include a valid endpoint. http://IP:PORT/codesync/share/yourendpoint </li>\n"
-				+ "					<li>Example: <code> http://172.191.1.223:8081/codesync/share/yourendpoint </code></li>\n"
-				+ "				</ul>\n" + "			</body>\n" + "			</html>\n" + "			");
+				+ "					<li>Include a valid endpoint. http://IP:PORT/" + request.getContextPath()
+				+ "/share/yourendpoint </li>\n" + "					<li>Example: <code> " + exampleUrl
+				+ " </code></li>\n" + "				</ul>\n" + "			</body>\n" + "			</html>\n"
+				+ "			");
 		return response;
 	}
 
@@ -145,5 +149,15 @@ public class CodeSyncUtil {
 		String remoteAddr = request.getRemoteAddr();
 		CodeSyncLogger.logInfo("Client IP from request.getRemoteAddr(): " + remoteAddr);
 		return remoteAddr;
+	}
+
+	/**
+	 * Generates Unique Reference For Block ID
+	 */
+	public static String generateBlockRef(String clientIp) {
+		String datePart = java.time.LocalDateTime.now()
+				.format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+		String timePart = String.valueOf(System.currentTimeMillis()).substring(8);
+		return "CS-BLK-" + datePart + "-" + timePart + "_" + clientIp;
 	}
 }

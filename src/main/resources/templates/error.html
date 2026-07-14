@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="https://umair-ali-bhutto.github.io/assets/CodePenIcon/logo.png">
+
+    <title th:text="'Error ' + ${errorCode} + ' | CodeSync'">Error | CodeSync</title>
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: #060910;
+            color: #f1f5f9;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .card {
+            background: #111827;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 16px;
+            padding: 3rem;
+            max-width: 480px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4);
+        }
+
+        /* colour per status code */
+        .code {
+            font-size: 5rem;
+            font-weight: 900;
+            letter-spacing: -3px;
+            line-height: 1;
+        }
+
+        .code-4xx {
+            color: #facc15;
+        }
+
+        /* yellow  — client error */
+        .code-5xx {
+            color: #f87171;
+        }
+
+        /* red     — server error */
+
+        h2 {
+            margin: 1rem 0 0.25rem;
+            font-size: 1.4rem;
+        }
+
+        .desc {
+            color: #64748b;
+            margin: 0.5rem 0 2rem;
+            line-height: 1.6;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: .75rem 1.75rem;
+            background: #38bdf8;
+            color: #060910;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: opacity .2s;
+        }
+
+        .btn:hover {
+            opacity: .85;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="card">
+
+        <!-- Colour class: 5xx = red, 4xx = yellow -->
+        <div class="code" th:classappend="${errorCode >= 500} ? 'code-5xx' : 'code-4xx'" th:text="${errorCode}">500
+        </div>
+
+        <h2 th:text="${errorTitle}">Something Went Wrong</h2>
+
+        <p class="desc" th:text="${errorDescription}">
+            An unexpected error occurred.
+        </p>
+
+        <a th:href="@{${backUrl}}" class="btn">
+            <span th:text="${errorCode == 401} ? 'Go to Login' : 'Back to Dashboard'">
+                Back to Dashboard
+            </span>
+        </a>
+
+    </div>
+</body>
+
+</html>

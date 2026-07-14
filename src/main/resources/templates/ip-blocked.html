@@ -1,0 +1,281 @@
+<!-- 
+ ______    ______    ______   ________   ______    ______         _______   ________  __    __  ______  ________  _______  
+/      \  /      \  /      \ |        \ /      \  /      \       |       \ |        \|  \  |  \|      \|        \|       \ 
+|  $$$$$$\|  $$$$$$\|  $$$$$$\| $$$$$$$$|  $$$$$$\|  $$$$$$\      | $$$$$$$\| $$$$$$$$| $$\ | $$ \$$$$$$| $$$$$$$$| $$$$$$$\
+| $$__| $$| $$   \$$| $$   \$$| $$__    | $$___\$$| $$___\$$      | $$  | $$| $$__    | $$$\| $$  | $$  | $$__    | $$  | $$
+| $$    $$| $$      | $$      | $$  \    \$$    \  \$$    \       | $$  | $$| $$  \   | $$$$\ $$  | $$  | $$  \   | $$  | $$
+| $$$$$$$$| $$   __ | $$   __ | $$$$$    _\$$$$$$\ _\$$$$$$\      | $$  | $$| $$$$$   | $$\$$ $$  | $$  | $$$$$   | $$  | $$
+| $$  | $$| $$__/  \| $$__/  \| $$_____ |  \__| $$|  \__| $$      | $$__/ $$| $$_____ | $$ \$$$$ _| $$_ | $$_____ | $$__/ $$
+| $$  | $$ \$$    $$ \$$    $$| $$     \ \$$    $$ \$$    $$      | $$    $$| $$     \| $$  \$$$|   $$ \| $$     \| $$    $$
+ \$$   \$$  \$$$$$$   \$$$$$$  \$$$$$$$$  \$$$$$$   \$$$$$$        \$$$$$$$  \$$$$$$$$ \$$   \$$ \$$$$$$ \$$$$$$$$ \$$$$$$$ 
+                                                                                                                           
+-->                                                                                                                           
+                                                                                                                           
+
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <title>Access Blocked | CodeSync</title>
+    <link rel="icon" href="https://umair-ali-bhutto.github.io/assets/CodePenIcon/logo.png">
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #0d0d14;
+            font-family: system-ui, sans-serif;
+            padding: 1rem;
+        }
+
+        .card {
+            width: 100%;
+            max-width: 580px;
+            background: #13131f;
+            border: 0.5px solid rgba(255, 80, 80, 0.25);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            background: #0f0f1a;
+            border-bottom: 0.5px solid rgba(255, 80, 80, 0.15);
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .dot-red {
+            background: #ff5f57;
+        }
+
+        .dot-yellow {
+            background: #febc2e;
+        }
+
+        .dot-green {
+            background: #28c840;
+        }
+
+        .topbar-label {
+            margin-left: 6px;
+            font-size: 11px;
+            color: #44445a;
+            font-family: monospace;
+        }
+
+        .body {
+            padding: 2.5rem 3rem;
+            text-align: center;
+        }
+
+        .shield {
+            width: 72px;
+            height: 72px;
+            background: rgba(220, 40, 40, 0.1);
+            border: 1px solid rgba(220, 40, 40, 0.3);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+        }
+
+        .shield i {
+            font-size: 32px;
+            color: #e84a4a;
+        }
+
+        .error-code {
+            font-size: 11px;
+            letter-spacing: 0.12em;
+            color: #e84a4a;
+            text-transform: uppercase;
+            font-family: monospace;
+            margin-bottom: 6px;
+        }
+
+        h1 {
+            font-size: 22px;
+            font-weight: 500;
+            color: #f0ece8;
+            margin-bottom: 10px;
+        }
+
+        .description {
+            font-size: 14px;
+            color: #8a8a9a;
+            line-height: 1.6;
+            margin-bottom: 1.75rem;
+        }
+
+        .ip-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            background: rgba(0, 200, 180, 0.07);
+            border: 0.5px solid rgba(0, 200, 180, 0.25);
+            border-radius: 8px;
+            padding: 8px 14px;
+            margin-bottom: 1.75rem;
+            max-width: 100%;
+            overflow: hidden;
+        }
+
+        .ip-pill i {
+            font-size: 15px;
+            color: #00c8b4;
+            flex-shrink: 0;
+        }
+
+        .ip-pill .label {
+            font-size: 11px;
+            color: #00c8b4;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            font-family: monospace;
+            flex-shrink: 0;
+        }
+
+        .ip-pill .value {
+            font-size: 14px;
+            font-weight: 500;
+            color: #e0f7f4;
+            font-family: monospace;
+            word-break: break-all;
+        }
+
+        .divider {
+            height: 0.5px;
+            background: rgba(255, 255, 255, 0.06);
+            margin-bottom: 1.25rem;
+        }
+
+        .footer {
+            font-size: 12px;
+            color: #55556a;
+            line-height: 1.8;
+        }
+
+        .ref {
+            font-family: monospace;
+            color: #3a3a52;
+            font-size: 11px;
+            word-break: break-all;
+        }
+
+        /* Tablet */
+        @media (max-width: 640px) {
+            .body {
+                padding: 2rem 1.75rem;
+            }
+
+            h1 {
+                font-size: 20px;
+            }
+        }
+
+        /* Mobile */
+        @media (max-width: 420px) {
+            body {
+                padding: 0;
+                align-items: flex-end;
+            }
+
+            .card {
+                max-width: 100%;
+                border-radius: 20px 20px 0 0;
+                border-left: none;
+                border-right: none;
+                border-bottom: none;
+            }
+
+            .body {
+                padding: 1.75rem 1.25rem 2rem;
+            }
+
+            .shield {
+                width: 60px;
+                height: 60px;
+                margin-bottom: 1.25rem;
+            }
+
+            .shield i {
+                font-size: 26px;
+            }
+
+            h1 {
+                font-size: 18px;
+            }
+
+            .description {
+                font-size: 13px;
+            }
+
+            .ip-pill {
+                flex-wrap: wrap;
+                justify-content: center;
+                text-align: center;
+                padding: 10px 12px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="card">
+        <div class="topbar">
+            <div class="dot dot-red"></div>
+            <div class="dot dot-yellow"></div>
+            <div class="dot dot-green"></div>
+            <span class="topbar-label">security · firewall</span>
+        </div>
+
+        <div class="body">
+            <div class="shield">
+                <i class="ti ti-shield-off" aria-hidden="true"></i>
+            </div>
+
+            <div class="error-code">403 · Access Denied</div>
+            <h1>Your IP has been blocked</h1>
+            <p class="description">
+                This address has been flagged by the security system
+                and is not permitted to access this service.
+            </p>
+
+            <div class="ip-pill">
+                <i class="ti ti-network" aria-hidden="true"></i>
+                <span class="label">Blocked IP</span>
+                <span class="value" th:text="${errorDescription}">0.0.0.0</span>
+            </div>
+
+            <div class="divider"></div>
+
+            <p class="footer">
+                If you believe this is a mistake, contact the system administrator.
+                <br />
+                REF-ID: <span class="ref" th:text="${errorRef}">CS-BLK-20260610</span>
+            </p>
+        </div>
+    </div>
+</body>
+
+</html>

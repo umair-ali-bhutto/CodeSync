@@ -13,7 +13,7 @@
         content="CodeSync is a lightweight, real-time code and text sharing platform. Instantly create a shareable URL, collaborate live, and sync code or notes across multiple users with auto-save and near real-time updates. Also supports multi-file sharing." />
 
     <meta name="copyright"
-        content="© 2026 Umair Ali Bhutto (Just Kidding No Copy Right From Me Is Possible Because Code Is 50% AI Written)">
+        content="© 2026 Umair Ali Bhutto (Just Kidding No Copy Right From Me Is Possible Because Code Is 50% AI Written BUT Filtered By ME)">
     <meta name="publisher" content="Umair Ali Bhutto">
 
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
@@ -28,8 +28,8 @@
     <meta property="og:site_name" content="CodeSync">
     <meta property="og:image" content="https://umair-ali-bhutto.github.io/assets/CodePenIcon/logo.png">
 
-    <!-- TODO: GET FROM CONTROLLER -->
-    <meta property="og:url" content="http://172.191.1.223:8081/codesync/share/">
+    <meta property="og:url" th:content="@{${url}}">
+    <!-- <meta property="og:url" content="http://172.191.1.223:8081/codesync/share/"> -->
 
     <!-- THIS WORKS WE CAN GET application.properties value here -->
     <!-- <meta property="og:url" th:content="${@environment.getProperty('security.blocked-ips')} + @{/share/}" /> -->
@@ -864,6 +864,151 @@
             scrollbar-width: auto;
             scrollbar-color: var(--scroll-thumb) var(--scroll-track);
         }
+
+
+
+
+
+        /* ---- Feedback / Report Issue Modal ---- */
+        .feedback-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.45);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .feedback-overlay.visible {
+            display: flex;
+        }
+
+        .feedback-box {
+            background: var(--card-light);
+            border-radius: 12px;
+            padding: 1.5rem;
+            max-width: 420px;
+            width: 100%;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            position: relative;
+            transition: background var(--transition);
+        }
+
+        body.dark .feedback-box {
+            background: var(--card-dark);
+        }
+
+        .feedback-box h3 {
+            margin-bottom: 0.3rem;
+            font-size: 1.1rem;
+        }
+
+        .feedback-sub {
+            font-size: 0.85rem;
+            color: #888;
+            margin-bottom: 1rem;
+        }
+
+        .feedback-close {
+            position: absolute;
+            top: 0.75rem;
+            right: 0.9rem;
+            background: none;
+            border: none;
+            font-size: 1.3rem;
+            cursor: pointer;
+            color: #888;
+            line-height: 1;
+        }
+
+        .feedback-close:hover {
+            color: var(--danger);
+        }
+
+        .feedback-links {
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+        }
+
+        .feedback-link {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.6rem;
+            padding: 0.7rem 0.9rem;
+            border-radius: 8px;
+            border: 1.5px solid var(--border-light);
+            background: var(--editor-bg-light);
+            color: var(--text-light);
+            text-decoration: none;
+            font-size: 0.92rem;
+            font-weight: 500;
+            transition: background 0.15s, border-color 0.15s, transform 0.12s;
+        }
+
+        body.dark .feedback-link {
+            border-color: var(--border-dark);
+            background: var(--editor-bg-dark);
+            color: var(--text-dark);
+        }
+
+        .feedback-link:hover {
+            border-color: var(--accent);
+            background: rgba(0, 91, 138, 0.06);
+            transform: translateY(-1px);
+        }
+
+        body.dark .feedback-link:hover {
+            background: rgba(77, 184, 255, 0.08);
+        }
+
+        .feedback-link-icon {
+            font-size: 1.2rem;
+            flex-shrink: 0;
+            line-height: 1.4;
+        }
+
+        .feedback-link-sub {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 400;
+            color: #888;
+            margin-top: 2px;
+        }
+
+        /* Footer trigger button */
+        .footer-feedback-btn {
+            display: inline-flex;
+            align-items: center;
+            margin-left: 1%;
+            gap: 0.3rem;
+            padding: 3px 20px;
+            border-radius: 6px;
+            border: 1px solid var(--border-light);
+            background: transparent;
+            color: var(--accent);
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s;
+            vertical-align: middle;
+        }
+
+        body.dark .footer-feedback-btn {
+            border-color: var(--border-dark);
+            color: #4db8ff;
+        }
+
+        .footer-feedback-btn:hover {
+            background: rgba(0, 91, 138, 0.08);
+            border-color: var(--accent);
+        }
+
+        body.dark .footer-feedback-btn:hover {
+            background: rgba(77, 184, 255, 0.08);
+        }
     </style>
 </head>
 
@@ -972,19 +1117,85 @@
         </div>
     </div>
 
+    <!-- Feedback / Report Issue / Suggest Feature Modal -->
+    <div class="feedback-overlay" id="feedback-overlay">
+        <div class="feedback-box">
+            <button class="feedback-close" id="feedback-close" title="Close">✕</button>
+            <h3>💬 Feedback & Support</h3>
+            <p class="feedback-sub">Found a bug, have an idea, or just want to say hi? Pick an option below.</p>
+            <div class="feedback-links">
+                <a class="feedback-link"
+                    href="https://github.com/umair-ali-bhutto/codesync/issues/new?template=bug_report.yml"
+                    target="_blank" rel="noopener noreferrer">
+                    <span class="feedback-link-icon">🐛</span>
+                    <span>
+                        Report a Bug
+                        <span class="feedback-link-sub">Opens a pre-filled bug report on GitHub</span>
+                    </span>
+                </a>
+                <a class="feedback-link"
+                    href="https://github.com/umair-ali-bhutto/codesync/issues/new?template=feature_request.yml"
+                    target="_blank" rel="noopener noreferrer">
+                    <span class="feedback-link-icon">🚀</span>
+                    <span>
+                        Suggest a Feature
+                        <span class="feedback-link-sub">Opens a pre-filled feature request on GitHub</span>
+                    </span>
+                </a>
+                <a class="feedback-link" href="https://forms.gle/zyrTvPFj9jxQsn4G6" target="_blank"
+                    rel="noopener noreferrer">
+                    <span class="feedback-link-icon">📝</span>
+                    <span>
+                        Fill a Quick Google Form
+                        <span class="feedback-link-sub">No GitHub account needed</span>
+                    </span>
+                </a>
+                <a class="feedback-link" href="mailto:umair.ali@access.net.pk?subject=CodeSync%20Feedback">
+                    <span class="feedback-link-icon">📧</span>
+                    <span>
+                        Email Me Directly
+                        <span class="feedback-link-sub">umair.ali@access.net.pk</span>
+                    </span>
+                </a>
+                <!-- 👉 Add future buttons here, same structure as above -->
+            </div>
+        </div>
+    </div>
+
     <footer role="contentinfo">
         <!-- version -->
-        <p>@ 2026 🛠️ V-2.0.0 (Coded By <a href="mailto:umair.ali@access.net.pk"><b>Umair Ali Bhutto</b></a> 😎) |
-            <a href="https://github.com/umair-ali-bhutto/codesync" target="_blank">GitHub</a>
+        <p>@ [[${versionDate}]] 🛠️ [[${version}]] (Coded By <a href="mailto:umair.ali@access.net.pk"><b>Umair Ali Bhutto</b></a> 😎)
+             &nbsp; | &nbsp; 
+            <a href="https://github.com/umair-ali-bhutto/codesync" target="_blank"><b> GitHub </b></a>
+             &nbsp; | &nbsp; 
+            <button class="footer-feedback-btn" id="feedback-btn">💬 Report Issue / Suggest Feature</button>
         </p>
     </footer>
 
+
     <!-- ===================== SCRIPTS ===================== -->
+
+    <script th:inline="javascript">
+        const shareKey = [[${ shareKey }]];
+
+        const apiUrl = /*[[@{/api/share/{key}(key=${shareKey})}]]*/ '';
+        const fileApiUrl = /*[[@{/api/files/{key}(key=${shareKey})}]]*/ '';
+    </script>
+
     <script>
+
+        console.log(
+            "%c ✨ SYSTEM INITIALIZED WELCOME BRO %c Codsync Version [[${versionDate}]] --- [[${version}]] ",
+            "color: #fff; background: #1e1e2f; padding: 8px 12px; font-size: 14px; font-weight: bold; border-left: 5px solid #7289da; border-radius: 4px;",
+            "color: #7289da; background: #2f3136; padding: 8px 12px; font-size: 14px; border-radius: 4px;"
+        );
+
+
+
         /* ---- Constants ---- */
-        const shareKey = "[[${shareKey}]]";
-        const apiUrl = "/codesync/api/share/" + shareKey;
-        const fileApiUrl = "/codesync/api/files/" + shareKey;
+        // const shareKey = "[[${shareKey}]]";
+        // const apiUrl = "/codesync/api/share/" + shareKey;
+        // const fileApiUrl = "/codesync/api/files/" + shareKey;
 
         const MAX_FILE_BYTES = [[${ maxFileBytes }]];
         const MAX_FILES_PER_SHARE = [[${ maxFilesPerShare }]];
@@ -1046,6 +1257,10 @@
             statusDisplay.textContent = prefix + cfg.text;
             statusDisplay.style.color = cfg.color;
             statusTimer = setTimeout(() => { statusDisplay.textContent = ""; }, 1200);
+
+            // Track system status based on API response
+            const isSuccess = (typeof statusOrError === "number") && (statusOrError >= 200 && statusOrError < 300);
+            updateSystemStatus(isSuccess);
         }
 
         /* ======================================================
@@ -1113,7 +1328,7 @@
 
         /* Share URL */
         const shareBtn = document.getElementById("share-btn");
-        const shareUrl = window.location.origin + "/codesync/share/" + shareKey;
+        const shareUrl = window.location.origin + "[[${contextPath}]]/share/" + shareKey;
         function copyTextFallback(text) {
             const t = document.createElement("textarea");
             t.value = text; t.style.cssText = "position:fixed;opacity:0;";
@@ -1439,9 +1654,9 @@
 
                 // Refresh list when something expires so it disappears cleanly
                 // if (anyExpired) {
-                    // clearInterval(expiryTicker);
-                    // expiryTicker = null;
-                    // loadFileList();
+                // clearInterval(expiryTicker);
+                // expiryTicker = null;
+                // loadFileList();
                 // }
             }, 1000);
         }
@@ -1480,36 +1695,215 @@
             document.body.removeChild(a);
         }
 
+
+
+
         /* ---- Download All ---- */
         document.getElementById('dl-all-btn').addEventListener('click', async () => {
-            const r = await fetch(fileApiUrl + '/list');
-            if (!r.ok) return;
-            const files = await r.json();
-            if (!files.length) return;
-
             const overlay = document.getElementById('dl-overlay');
             const fillEl = document.getElementById('dl-progress-fill');
             const statusEl = document.getElementById('dl-status');
-            overlay.classList.add('visible');
 
-            for (let i = 0; i < files.length; i++) {
-                const f = files[i];
-                statusEl.textContent = `Downloading ${i + 1}/${files.length}: ${f.originalName}`;
-                fillEl.style.width = Math.round(((i) / files.length) * 100) + '%';
-                await new Promise(res => {
-                    const a = document.createElement('a');
-                    a.href = fileApiUrl + '/download/' + f.fileId;
-                    a.download = f.originalName;
-                    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-                    setTimeout(res, 600); // stagger downloads
-                });
+            overlay.classList.add('visible');
+            fillEl.style.width = '0%';
+            statusEl.textContent = '🗜️ Requesting ZIP archive...';
+
+            try {
+                // Fetch the ZIP file from the new endpoint
+                const response = await fetch(fileApiUrl + '/download-all');
+
+                if (!response.ok) {
+                    if (response.status === 404) throw new Error('No files found to download.');
+                    if (response.status === 410) throw new Error('All files have expired.');
+                    throw new Error(`Server returned ${response.status}`);
+                }
+
+                // --- 🌟 EXTRACT FILENAME FROM BACKEND HEADERS 🌟 ---
+                const disposition = response.headers.get('Content-Disposition');
+                let filename = `codesync_${shareKey}.zip`; // Fallback just in case
+
+                if (disposition) {
+                    // This regex matches filename="something.zip" or filename=something.zip
+                    const matches = /filename="?([^";]+)"?/.exec(disposition);
+                    if (matches && matches[1]) {
+                        filename = matches[1];
+                    }
+                }
+                // ---------------------------------------------------
+
+                const contentLength = response.headers.get('content-length');
+                const total = parseInt(contentLength, 10);
+                let loaded = 0;
+
+                const reader = response.body.getReader();
+                const chunks = [];
+
+                statusEl.textContent = '⬇️ Downloading ZIP...';
+
+                // Read the stream chunk by chunk to track progress
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    chunks.push(value);
+                    loaded += value.length;
+
+                    // Update progress bar
+                    if (total && !isNaN(total)) {
+                        const percent = Math.round((loaded / total) * 100);
+                        fillEl.style.width = percent + '%';
+                        statusEl.textContent = `⬇️ Downloading ZIP... ${percent}%`;
+                    } else {
+                        // If content-length is unknown, simulate progress up to 90%
+                        let currentWidth = parseFloat(fillEl.style.width) || 0;
+                        if (currentWidth < 90) {
+                            currentWidth += Math.random() * 5;
+                        }
+                        fillEl.style.width = currentWidth + '%';
+                        statusEl.textContent = `⬇️ Downloading ZIP... ${humanSize(loaded)}`;
+                    }
+                }
+
+                // Create a Blob from the downloaded chunks and trigger the save dialog
+                const blob = new Blob(chunks, { type: 'application/zip' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+
+                // --- 🌟 USE THE EXTRACTED FILENAME HERE 🌟 ---
+                a.download = filename;
+                // ---------------------------------------------
+
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+
+                fillEl.style.width = '100%';
+                statusEl.textContent = '✅ ZIP file downloaded!';
+                setTimeout(() => overlay.classList.remove('visible'), 1500);
+
+            } catch (error) {
+                console.error('Download all failed:', error);
+                statusEl.textContent = '❌ ' + (error.message || 'Failed to download ZIP.');
+                fillEl.style.width = '0%';
+                setTimeout(() => overlay.classList.remove('visible'), 2000);
             }
-            fillEl.style.width = '100%';
-            statusEl.textContent = '✅ All files downloaded!';
-            setTimeout(() => overlay.classList.remove('visible'), 1500);
         });
 
+
+
+        // document.getElementById('dl-all-btn').addEventListener('click', async () => {
+        //     const overlay = document.getElementById('dl-overlay');
+        //     const fillEl = document.getElementById('dl-progress-fill');
+        //     const statusEl = document.getElementById('dl-status');
+
+        //     overlay.classList.add('visible');
+        //     fillEl.style.width = '0%';
+        //     statusEl.textContent = '🗜️ Requesting ZIP archive...';
+
+        //     try {
+        //         // Fetch the ZIP file from the new endpoint
+        //         const response = await fetch(fileApiUrl + '/download-all');
+
+        //         if (!response.ok) {
+        //             if (response.status === 404) throw new Error('No files found to download.');
+        //             if (response.status === 410) throw new Error('All files have expired.');
+        //             throw new Error(`Server returned ${response.status}`);
+        //         }
+
+        //         const contentLength = response.headers.get('content-length');
+        //         const total = parseInt(contentLength, 10);
+        //         let loaded = 0;
+
+        //         const reader = response.body.getReader();
+        //         const chunks = [];
+
+        //         statusEl.textContent = '⬇️ Downloading ZIP...';
+
+        //         // Read the stream chunk by chunk to track progress
+        //         while (true) {
+        //             const { done, value } = await reader.read();
+        //             if (done) break;
+
+        //             chunks.push(value);
+        //             loaded += value.length;
+
+        //             // Update progress bar
+        //             if (total && !isNaN(total)) {
+        //                 const percent = Math.round((loaded / total) * 100);
+        //                 fillEl.style.width = percent + '%';
+        //                 statusEl.textContent = `⬇️ Downloading ZIP... ${percent}%`;
+        //             } else {
+        //                 // If content-length is unknown, simulate progress up to 90%
+        //                 let currentWidth = parseFloat(fillEl.style.width) || 0;
+        //                 if (currentWidth < 90) {
+        //                     currentWidth += Math.random() * 5;
+        //                 }
+        //                 fillEl.style.width = currentWidth + '%';
+        //                 statusEl.textContent = `⬇️ Downloading ZIP... ${humanSize(loaded)}`;
+        //             }
+        //         }
+
+        //         // Create a Blob from the downloaded chunks and trigger the save dialog
+        //         const blob = new Blob(chunks, { type: 'application/zip' });
+        //         const url = window.URL.createObjectURL(blob);
+        //         const a = document.createElement('a');
+        //         a.href = url;
+        //         a.download = `codesync_${shareKey}.zip`;
+        //         document.body.appendChild(a);
+        //         a.click();
+        //         document.body.removeChild(a);
+        //         window.URL.revokeObjectURL(url);
+
+        //         fillEl.style.width = '100%';
+        //         statusEl.textContent = '✅ ZIP file downloaded!';
+        //         setTimeout(() => overlay.classList.remove('visible'), 1500);
+
+        //     } catch (error) {
+        //         console.error('Download all failed:', error);
+        //         statusEl.textContent = '❌ ' + (error.message || 'Failed to download ZIP.');
+        //         fillEl.style.width = '0%';
+        //         setTimeout(() => overlay.classList.remove('visible'), 2000);
+        //     }
+        // });
+
+
+
+
+
+        // document.getElementById('dl-all-btn').addEventListener('click', async () => {
+        //     const r = await fetch(fileApiUrl + '/list');
+        //     if (!r.ok) return;
+        //     const files = await r.json();
+        //     if (!files.length) return;
+
+        //     const overlay = document.getElementById('dl-overlay');
+        //     const fillEl = document.getElementById('dl-progress-fill');
+        //     const statusEl = document.getElementById('dl-status');
+        //     overlay.classList.add('visible');
+
+        //     for (let i = 0; i < files.length; i++) {
+        //         const f = files[i];
+        //         statusEl.textContent = `Downloading ${i + 1}/${files.length}: ${f.originalName}`;
+        //         fillEl.style.width = Math.round(((i) / files.length) * 100) + '%';
+        //         await new Promise(res => {
+        //             const a = document.createElement('a');
+        //             a.href = fileApiUrl + '/download/' + f.fileId;
+        //             a.download = f.originalName;
+        //             document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        //             setTimeout(res, 600); // stagger downloads
+        //         });
+        //     }
+        //     fillEl.style.width = '100%';
+        //     statusEl.textContent = '✅ All files downloaded!';
+        //     setTimeout(() => overlay.classList.remove('visible'), 1500);
+        // });
+
+        /* ---- Refresh Files ---- */
         document.getElementById('refresh-files-btn').addEventListener('click', () => loadFileList());
+
+        /* ---- Delete all files ---- */
 
         document.getElementById('del-all-btn').addEventListener('click', async () => {
             if (!confirm("Delete ALL files for this share key? This cannot be undone.")) return;
@@ -1538,6 +1932,33 @@
             finally { hideLoader(); }
         }
 
+
+        /* ---- Feedback / Report Issue Modal ---- */
+        const feedbackOverlay = document.getElementById('feedback-overlay');
+        const feedbackBtn = document.getElementById('feedback-btn');
+        const feedbackClose = document.getElementById('feedback-close');
+
+        feedbackBtn.addEventListener('click', () => {
+            feedbackOverlay.classList.add('visible');
+        });
+
+        feedbackClose.addEventListener('click', () => {
+            feedbackOverlay.classList.remove('visible');
+        });
+
+        // Close on backdrop click
+        feedbackOverlay.addEventListener('click', (e) => {
+            if (e.target === feedbackOverlay) feedbackOverlay.classList.remove('visible');
+        });
+
+        // Close on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && feedbackOverlay.classList.contains('visible')) {
+                feedbackOverlay.classList.remove('visible');
+            }
+        });
+
+
         /* ---- Helpers ---- */
         function escHtml(str) {
             return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -1548,6 +1969,83 @@
 
         /* ---- Init file list on load ---- */
         // (loaded on tab switch, not on page load to avoid extra requests)
+
+
+
+
+
+        let systemStatus = 'UNKNOWN';
+        let lastApiErrorTime = 0;
+        const SYSTEM_OFFLINE_TIMEOUT = 5000;
+
+        function updateSystemStatus(isSuccess) {
+
+            const now = Date.now();
+
+            if (isSuccess) {
+
+                if (systemStatus !== 'ONLINE') {
+
+                    systemStatus = 'ONLINE';
+                    logSystemStatus('ONLINE');
+                }
+
+                return;
+            }
+
+            if (systemStatus === 'ONLINE') {
+
+                lastApiErrorTime = now;
+
+                systemStatus = 'CHECKING';
+                logSystemStatus('CHECKING');
+
+                return;
+            }
+
+            if (
+                systemStatus === 'CHECKING' &&
+                (now - lastApiErrorTime) >= SYSTEM_OFFLINE_TIMEOUT
+            ) {
+
+                systemStatus = 'OFFLINE';
+                logSystemStatus('OFFLINE');
+            }
+        }
+
+        function logSystemStatus(status) {
+
+            const time = new Date().toLocaleTimeString();
+
+            if (status === 'ONLINE') {
+
+                console.log(
+                    "%c🚀 SYSTEM ONLINE\n%c --> Operator: " + shareKey + "\t 🕒 " + time,
+                    "color: #00ff00; font-size: 40px; font-weight: bold; font-family: monospace; text-shadow: 3px 3px 0 #003300;",
+                    "color: #888; font-size: 16px; font-family: monospace; font-style: italic;"
+                );
+
+            } else if (status === 'CHECKING') {
+
+                console.log(
+                    "%c⚠️ SYSTEM DEGRADED\n%cConnection issues detected, monitoring...\t 🕒 " + time,
+                    "color: #ffaa00; font-size: 40px; font-weight: bold; font-family: monospace; text-shadow: 3px 3px 0 #553300;",
+                    "color: #888; font-size: 16px; font-family: monospace; font-style: italic;"
+                );
+
+            } else if (status === 'OFFLINE') {
+
+                console.log(
+                    "%c💀 SYSTEM OFFLINE\n%cCannot reach server, check your connection!\t 🕒 " + time,
+                    "color: #ff0000; font-size: 40px; font-weight: bold; font-family: monospace; text-shadow: 3px 3px 0 #330000;",
+                    "color: #888; font-size: 16px; font-family: monospace; font-style: italic;"
+                );
+            }
+        }
+
+
+
+
     </script>
 
 </body>

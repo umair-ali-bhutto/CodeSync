@@ -3,6 +3,8 @@
 
 <head>
 	<title>Access Denied | CodeSync</title>
+	<link rel="icon" href="https://umair-ali-bhutto.github.io/assets/CodePenIcon/logo.png">
+
 	<style>
 		* {
 			box-sizing: border-box;
@@ -118,7 +120,12 @@
 		<hr class="divider">
 		<a th:href="@{/admin/dashboard}" class="btn btn-primary">Go to Dashboard</a>
 
-		<a th:href="@{/logout}" class="btn btn-secondary">Logout</a>
+		<!-- <a th:href="@{/logout}" class="btn btn-secondary">Logout</a> -->
+		<form th:action="@{/logout}" method="post" style="display:inline;">
+			<button type="submit" class="btn btn-secondary">
+				Logout
+			</button>
+		</form>
 	</div>
 </body>
 

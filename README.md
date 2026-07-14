@@ -74,11 +74,11 @@ Perfect for:
 ### Access Your Shared Room
 
 ```
-http://your-server:8081/codesync/share/{your-key}
+http://your-server:8082/codesync/share/{your-key}
 ```
 
 **Live Example:**  
-[http://172.191.1.223:8081/codesync/share/umair](http://172.191.1.223:8081/codesync/share/umair)
+[http://172.190.1.223:8082/codesync/share/umair](http://172.190.1.223:8082/codesync/share/umair)
 
 > 💡 **Pro Tip**: Any user with the same URL sees and edits the same content in real-time - perfect for collaboration!
 
@@ -223,7 +223,7 @@ CodeSync works seamlessly with multiple databases:
    ```
 
 5. **Access CodeSync**  
-   Open browser: `http://localhost:8081/codesync/share/test`
+   Open browser: `http://localhost:8082/codesync/share/test`
 
 ---
 
