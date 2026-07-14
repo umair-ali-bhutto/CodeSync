@@ -1,9 +1,15 @@
 package com.cs.controller;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
@@ -28,7 +34,9 @@ import com.cs.service.CodeSyncClientCache;
 import com.cs.service.CodeSyncSharedFileService;
 import com.cs.util.CodeSyncUtil;
 
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 /**
  * REST API for file sharing within a CodeSync share key.
@@ -50,7 +58,8 @@ public class FileShareController {
 	 * Upload a file. Returns 201 on success, 413 if file is too large, 409 if file
 	 * limit reached.
 	 */
-	@PostMapping("/{key}/upload")
+	@Operation(summary = "Upload file to share")
+	@PostMapping(value = "/{key}/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	public ResponseEntity<String> upload(@PathVariable String key, @RequestParam("file") MultipartFile file,
 			HttpServletRequest request) {
 
@@ -168,6 +177,13 @@ public class FileShareController {
 			if (!f.getShareKey().equals(key)) {
 				return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Forbidden");
 			}
+
+			// file already moved
+			if (!f.getIsActive()) {
+				return ResponseEntity.status(HttpStatus.GONE)
+						.body("File is no longer available (already deleted or moved).");
+			}
+
 			fileService.delete(fileId);
 			return ResponseEntity.ok("Deleted");
 		} catch (IllegalArgumentException e) {
@@ -189,6 +205,81 @@ public class FileShareController {
 			return ResponseEntity.ok("Deleted " + count + " files.");
 		} catch (IOException e) {
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Delete all failed.");
+		}
+	}
+
+	/**
+	 * Download all active files for a share key as a single ZIP archive.
+	 */
+	@GetMapping("/{key}/download-all")
+	public void downloadAll(@PathVariable String key, HttpServletResponse response) throws IOException {
+		CodeSyncUtil.validateKey(key);
+
+		List<CodeSyncSharedFile> files = fileService.findActiveFiles(key);
+		if (files.isEmpty()) {
+			response.sendError(HttpStatus.NOT_FOUND.value(), "No files found for this share key.");
+			return;
+		}
+
+		// Filter out expired files
+		java.sql.Timestamp now = new java.sql.Timestamp(System.currentTimeMillis());
+		List<CodeSyncSharedFile> validFiles = files.stream()
+				.filter(f -> f.getExpiresAt() == null || f.getExpiresAt().after(now)).toList();
+
+		if (validFiles.isEmpty()) {
+			response.sendError(HttpStatus.GONE.value(), "All files have expired.");
+			return;
+		}
+
+		String zipFileName = "codesync_" + key + "_" + System.currentTimeMillis() + ".zip";
+		response.setContentType("application/zip");
+		response.setHeader(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + zipFileName + "\"");
+
+		try (ZipOutputStream zos = new ZipOutputStream(response.getOutputStream())) {
+			byte[] buffer = new byte[8192];
+			Set<String> usedNames = new HashSet<>();
+
+			for (CodeSyncSharedFile file : validFiles) {
+				Path filePath = Paths.get(file.getStoredPath());
+				if (!Files.exists(filePath)) {
+					continue; // Skip missing files
+				}
+
+				// Handle duplicate file names in the ZIP to prevent ZipException
+				String entryName = file.getOriginalName();
+				int counter = 1;
+				while (usedNames.contains(entryName)) {
+					int dotIndex = file.getOriginalName().lastIndexOf('.');
+					if (dotIndex > 0) {
+						entryName = file.getOriginalName().substring(0, dotIndex) + "_" + counter
+								+ file.getOriginalName().substring(dotIndex);
+					} else {
+						entryName = file.getOriginalName() + "_" + counter;
+					}
+					counter++;
+				}
+				usedNames.add(entryName);
+
+				ZipEntry zipEntry = new ZipEntry(entryName);
+				zos.putNextEntry(zipEntry);
+
+				try (InputStream is = Files.newInputStream(filePath)) {
+					int bytesRead;
+					while ((bytesRead = is.read(buffer)) != -1) {
+						zos.write(buffer, 0, bytesRead);
+					}
+				}
+				zos.closeEntry();
+
+				// Increment download count for each file included in the ZIP
+				fileService.incrementDownload(file.getFileId());
+			}
+		} catch (Exception e) {
+			CodeSyncLogger.logError(getClass(), "Error creating ZIP for key: " + key, e);
+			if (!response.isCommitted()) {
+				response.reset();
+				response.sendError(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to create ZIP archive.");
+			}
 		}
 	}
 

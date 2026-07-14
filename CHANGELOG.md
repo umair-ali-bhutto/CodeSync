@@ -6,6 +6,52 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ---
 
+## [V-2.1.0] 09-JUN-2026 <--> 14-JUL-2026
+
+### Added 09-JUN-2026
+
+- Added resilience4j for retries
+
+### Changed 09-JUN-2026
+
+- updated exception auth controller for proper appropriate responses
+- Fixed error page routing 
+- some minor bugs fixation
+
+
+### Added 10-JUN-2026
+
+- Added ip blocked page for user to see that which ip is blocked
+- Added Dynamic Ip Blocking And Unblocking Feature
+- Added Download all files into zip Feature
+
+### Changed 10-JUN-2026
+
+- Fixed hard coded context roots in html
+- Fixed Error page routing
+
+### Added 12-JUN-2026
+
+- Added Database Archiving
+- Added Swagger
+
+### Added 17-JUN-2026
+
+- Added Links To Error Reporting And Feedback (created seperate dialog)
+
+### Changed 19-JUN-2026
+
+- made log service controller local only and for allowed ips
+
+### Changed 07-JUL-2026
+
+- changed log file cleanup to 10 days
+
+### Changed 14-JUL-2026
+
+- Added version date from application.properties
+
+
 ## [V-2.0.0] 10-MAY-2026 <--> 18-MAY-2026
 
 ### Changed 10-MAY-2026

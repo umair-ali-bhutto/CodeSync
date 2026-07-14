@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/springsecurity6" lang="en">
+
+<head>
+    <link rel="icon" href="https://umair-ali-bhutto.github.io/assets/CodePenIcon/logo.png">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>IP Management — Codesync Admin</title>
+    <style>
+        :root {
+            --bg: #0d1117;
+            --surface: #161b22;
+            --surface2: #21262d;
+            --border: #30363d;
+            --text: #e6edf3;
+            --muted: #8b949e;
+            --green: #3fb950;
+            --green-dim: #1a3a22;
+            --red: #f85149;
+            --red-dim: #3a1a1a;
+            --yellow: #d29922;
+            --yellow-dim: #3a2e0a;
+            --blue: #85fbff;
+            --radius: 8px;
+            --mono: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+        }
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 14px;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .topbar {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 0 28px;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .topbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            font-size: 15px;
+            color: var(--text);
+            text-decoration: none;
+        }
+
+        .topbar-brand .shield {
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, var(--red), #c0392b);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .topbar-back {
+            color: var(--muted);
+            text-decoration: none;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: color .15s;
+        }
+
+        .topbar-back:hover {
+            color: var(--text);
+        }
+
+        .page-wrap {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 32px 24px 64px;
+        }
+
+        .page-header {
+            margin-bottom: 28px;
+        }
+
+        .page-header h1 {
+            font-size: 22px;
+            font-weight: 600;
+        }
+
+        .page-header p {
+            color: var(--muted);
+            margin-top: 4px;
+            font-size: 13px;
+        }
+
+        .flash {
+            padding: 12px 16px;
+            border-radius: var(--radius);
+            margin-bottom: 24px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .flash-success {
+            background: var(--green-dim);
+            border: 1px solid var(--green);
+            color: var(--green);
+        }
+
+        .flash-error {
+            background: var(--red-dim);
+            border: 1px solid var(--red);
+            color: var(--red);
+        }
+
+        .stats {
+            display: flex;
+            gap: 14px;
+            margin-bottom: 28px;
+            flex-wrap: wrap;
+        }
+
+        .stat-pill {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 50px;
+            padding: 6px 16px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .stat-pill .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .dot-red {
+            background: var(--red);
+            box-shadow: 0 0 6px var(--red);
+        }
+
+        .dot-green {
+            background: var(--green);
+            box-shadow: 0 0 6px var(--green);
+        }
+
+        .dot-yellow {
+            background: var(--yellow);
+            box-shadow: 0 0 6px var(--yellow);
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+
+        .card-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .card-title {
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .badge {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            color: var(--muted);
+            border-radius: 50px;
+            padding: 1px 9px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .badge-red {
+            background: var(--red-dim);
+            border-color: var(--red);
+            color: var(--red);
+        }
+
+        .tbl-wrap {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead tr {
+            background: var(--surface2);
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            padding: 10px 16px;
+            text-align: left;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+            color: var(--muted);
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+            vertical-align: middle;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tbody tr:hover td {
+            background: var(--surface2);
+        }
+
+        .ip-mono {
+            font-family: var(--mono);
+            font-size: 13px;
+            color: var(--blue);
+        }
+
+        .name-chip {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 2px 8px;
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .status-blocked {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            color: var(--red);
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-allowed {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            color: var(--green);
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .empty {
+            padding: 40px 20px;
+            text-align: center;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .empty-icon {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: opacity .15s;
+            white-space: nowrap;
+        }
+
+        .btn:hover {
+            opacity: .80;
+        }
+
+        .btn-block {
+            background: var(--red-dim);
+            border-color: var(--red);
+            color: var(--red);
+        }
+
+        .btn-unblock {
+            background: var(--green-dim);
+            border-color: var(--green);
+            color: var(--green);
+        }
+
+        .quick-block {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+            padding: 16px 20px;
+            background: var(--surface2);
+            border-top: 1px solid var(--border);
+        }
+
+        .form-field {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .form-field label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: .04em;
+        }
+
+        input[type="text"] {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            border-radius: 6px;
+            padding: 7px 12px;
+            font-size: 13px;
+            font-family: var(--mono);
+            outline: none;
+            transition: border-color .15s;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--blue);
+        }
+
+        input[type="text"]::placeholder {
+            color: var(--muted);
+            font-family: inherit;
+        }
+
+        .input-reason {
+            font-family: inherit;
+            width: 240px;
+        }
+
+        /* ── modal overlay ─────────────────────────────────── */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .65);
+            z-index: 999;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 28px 28px 24px;
+            width: 380px;
+            max-width: 90vw;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, .5);
+        }
+
+        .modal-title {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .modal-sub {
+            font-size: 12px;
+            color: var(--muted);
+            margin-bottom: 18px;
+        }
+
+        .modal-sub .modal-ip {
+            color: var(--blue);
+            font-family: var(--mono);
+        }
+
+        .modal-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            margin-bottom: 6px;
+            display: block;
+        }
+
+        .modal-input {
+            width: 100%;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 13px;
+            outline: none;
+            transition: border-color .15s;
+            margin-bottom: 20px;
+        }
+
+        .modal-input:focus {
+            border-color: var(--blue);
+        }
+
+        .modal-input::placeholder {
+            color: var(--muted);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .btn-cancel {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            color: var(--muted);
+            padding: 7px 16px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity .15s;
+        }
+
+        .btn-cancel:hover {
+            opacity: .80;
+        }
+
+        .btn-confirm-block {
+            background: var(--red-dim);
+            border: 1px solid var(--red);
+            color: var(--red);
+            padding: 7px 16px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity .15s;
+        }
+
+        .btn-confirm-unblock {
+            background: var(--green-dim);
+            border: 1px solid var(--green);
+            color: var(--green);
+            padding: 7px 16px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity .15s;
+        }
+
+        .btn-confirm-block:hover,
+        .btn-confirm-unblock:hover {
+            opacity: .80;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ── BLOCK MODAL ──────────────────────────────────────────────────── -->
+    <div class="modal-overlay" id="blockModal">
+        <div class="modal">
+            <div class="modal-title">🚫 Block IP Address</div>
+            <div class="modal-sub">You are about to block <span class="modal-ip" id="blockModalIp"></span></div>
+            <label class="modal-label" for="blockReasonInput">Reason (optional)</label>
+            <input class="modal-input" id="blockReasonInput" type="text"
+                placeholder="e.g. Suspicious activity, port scanning…" maxlength="255" />
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeModal('blockModal')">Cancel</button>
+                <button class="btn-confirm-block" id="blockModalConfirm">✕ Block</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── UNBLOCK MODAL ────────────────────────────────────────────────── -->
+    <div class="modal-overlay" id="unblockModal">
+        <div class="modal">
+            <div class="modal-title">✓ Unblock IP Address</div>
+            <div class="modal-sub">This will restore access for <span class="modal-ip" id="unblockModalIp"></span></div>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeModal('unblockModal')">Cancel</button>
+                <button class="btn-confirm-unblock" id="unblockModalConfirm">✓ Unblock</button>
+            </div>
+        </div>
+    </div>
+
+    <nav class="topbar">
+        <a class="topbar-brand" th:href="@{/admin/dashboard}">
+            <span class="shield">🛡</span>
+            Admin Console
+        </a>
+        <a class="topbar-back" th:href="@{/admin/dashboard}">← Back to Dashboard</a>
+    </nav>
+
+    <div class="page-wrap">
+
+        <div class="page-header">
+            <h1>IP Access Management</h1>
+            <p>Block or unblock client IPs. Changes persist to the database and survive restarts.</p>
+        </div>
+
+        <div class="flash flash-success" th:if="${successMsg}" th:text="${successMsg}"></div>
+        <div class="flash flash-error" th:if="${errorMsg}" th:text="${errorMsg}"></div>
+
+        <!-- Stat pills -->
+        <div class="stats">
+            <div class="stat-pill">
+                <span class="dot dot-red"></span>
+                <span><strong th:text="${blockedIps.size()}">0</strong> blocked</span>
+            </div>
+            <div class="stat-pill">
+                <span class="dot dot-green"></span>
+                <span><strong th:text="${knownClients.size()}">0</strong> known clients</span>
+            </div>
+            <div class="stat-pill">
+                <span class="dot dot-yellow"></span>
+                <span><strong th:text="${unknownIps.size()}">0</strong> unknown IPs in audit log</span>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════
+         SECTION 1 — BLOCKED IPs
+    ══════════════════════════════════════════════════ -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">
+                    🚫 Blocked IPs
+                    <span class="badge badge-red" th:text="${blockedIps.size()}">0</span>
+                </span>
+            </div>
+            <div th:if="${blockedIps.isEmpty()}" class="empty">
+                <div class="empty-icon">✅</div>
+                No IPs are currently blocked.
+            </div>
+            <div class="tbl-wrap" th:unless="${blockedIps.isEmpty()}">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>IP Address</th>
+                            <th>Blocked By</th>
+                            <th>Blocked At</th>
+                            <th>Reason</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="b : ${blockedIps}">
+                            <td><span class="ip-mono" th:text="${b.ip}">—</span></td>
+                            <td><span class="name-chip" th:text="${b.blockedBy}">—</span></td>
+                            <td th:text="${#temporals.format(b.blockedAt, 'yyyy-MM-dd HH:mm')}">—</td>
+                            <td th:text="${b.reason != null and !b.reason.isEmpty() ? b.reason : '—'}">—</td>
+                            <td>
+                                <!-- hidden form submitted by the modal -->
+                                <form th:id="'unblock-form-' + ${b.ip}" th:action="@{/admin/ip-management/unblock}"
+                                    method="post" style="display:none">
+                                    <input type="hidden" name="ip" th:value="${b.ip}" />
+                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                                </form>
+                                <button type="button" class="btn btn-unblock" th:data-ip="${b.ip}"
+                                    th:data-form="'unblock-form-' + ${b.ip}" onclick="openUnblock(this)">
+                                    ✓ Unblock
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════
+         SECTION 2 — KNOWN CLIENTS
+    ══════════════════════════════════════════════════ -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">
+                    👤 Known Clients
+                    <span class="badge" th:text="${knownClients.size()}">0</span>
+                </span>
+            </div>
+            <div th:if="${knownClients.isEmpty()}" class="empty">
+                <div class="empty-icon">📭</div>
+                No known clients found in the database.
+            </div>
+            <div class="tbl-wrap" th:unless="${knownClients.isEmpty()}">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>IP Address</th>
+                            <th>Name</th>
+                            <th>Registered On</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="c : ${knownClients}">
+                            <td><span class="ip-mono" th:text="${c.ip()}">—</span></td>
+                            <td th:text="${c.name() != null ? c.name() : '—'}">—</td>
+                            <td th:text="${c.insertedOn() != null ? c.insertedOn() : '—'}">—</td>
+                            <td>
+                                <span class="status-blocked" th:if="${blockedIpSet.contains(c.ip())}">● Blocked</span>
+                                <span class="status-allowed" th:unless="${blockedIpSet.contains(c.ip())}">●
+                                    Allowed</span>
+                            </td>
+                            <td>
+                                <!-- hidden forms submitted by modals -->
+                                <form th:id="'unblock-form-' + ${c.ip()}" th:action="@{/admin/ip-management/unblock}"
+                                    method="post" style="display:none">
+                                    <input type="hidden" name="ip" th:value="${c.ip()}" />
+                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                                </form>
+                                <form th:id="'block-form-' + ${c.ip()}" th:action="@{/admin/ip-management/block}"
+                                    method="post" style="display:none">
+                                    <input type="hidden" name="ip" th:value="${c.ip()}" />
+                                    <input type="hidden" name="reason" th:id="'block-reason-' + ${c.ip()}" value="" />
+                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                                </form>
+
+                                <button th:if="${blockedIpSet.contains(c.ip())}" type="button" class="btn btn-unblock"
+                                    th:data-ip="${c.ip()}" th:data-form="'unblock-form-' + ${c.ip()}"
+                                    onclick="openUnblock(this)">
+                                    ✓ Unblock
+                                </button>
+                                <button th:unless="${blockedIpSet.contains(c.ip())}" type="button" class="btn btn-block"
+                                    th:data-ip="${c.ip()}" th:data-form="'block-form-' + ${c.ip()}"
+                                    th:data-reason="'block-reason-' + ${c.ip()}" onclick="openBlock(this)">
+                                    ✕ Block
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════
+         SECTION 3 — UNKNOWN IPs
+    ══════════════════════════════════════════════════ -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">
+                    ⚠️ Unknown IPs (Audit Log Only)
+                    <span class="badge" th:text="${unknownIps.size()}">0</span>
+                </span>
+            </div>
+            <div th:if="${unknownIps.isEmpty()}" class="empty">
+                <div class="empty-icon">🔍</div>
+                No unknown IPs found in the audit log.
+            </div>
+            <div class="tbl-wrap" th:unless="${unknownIps.isEmpty()}">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>IP Address</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="ip : ${unknownIps}">
+                            <td><span class="ip-mono" th:text="${ip}">—</span></td>
+                            <td>
+                                <span class="status-blocked" th:if="${blockedIpSet.contains(ip)}">● Blocked</span>
+                                <span class="status-allowed" th:unless="${blockedIpSet.contains(ip)}">● Allowed</span>
+                            </td>
+                            <td>
+                                <!-- hidden forms -->
+                                <form th:id="'unblock-form-' + ${ip}" th:action="@{/admin/ip-management/unblock}"
+                                    method="post" style="display:none">
+                                    <input type="hidden" name="ip" th:value="${ip}" />
+                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                                </form>
+                                <form th:id="'block-form-' + ${ip}" th:action="@{/admin/ip-management/block}"
+                                    method="post" style="display:none">
+                                    <input type="hidden" name="ip" th:value="${ip}" />
+                                    <input type="hidden" name="reason" th:id="'block-reason-' + ${ip}" value="" />
+                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                                </form>
+
+                                <button th:if="${blockedIpSet.contains(ip)}" type="button" class="btn btn-unblock"
+                                    th:data-ip="${ip}" th:data-form="'unblock-form-' + ${ip}"
+                                    onclick="openUnblock(this)">
+                                    ✓ Unblock
+                                </button>
+                                <button th:unless="${blockedIpSet.contains(ip)}" type="button" class="btn btn-block"
+                                    th:data-ip="${ip}" th:data-form="'block-form-' + ${ip}"
+                                    th:data-reason="'block-reason-' + ${ip}" onclick="openBlock(this)">
+                                    ✕ Block
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Quick-block custom IP -->
+            <div class="quick-block">
+                <form th:action="@{/admin/ip-management/block}" method="post"
+                    style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
+                    <div class="form-field">
+                        <label>Block Custom IP</label>
+                        <input type="text" name="ip" placeholder="e.g. 192.168.1.55" required />
+                    </div>
+                    <div class="form-field">
+                        <label>Reason (optional)</label>
+                        <input type="text" name="reason" class="input-reason" placeholder="Suspicious activity…" />
+                    </div>
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                    <button type="submit" class="btn btn-block" style="margin-bottom:1px">✕ Block IP</button>
+                </form>
+            </div>
+        </div>
+
+    </div><!-- /page-wrap -->
+
+    <script>
+        // ── state ───────────────────────────────────────────────────────
+        let _pendingFormId = null;
+        let _pendingReasonId = null;
+
+        // ── helpers ─────────────────────────────────────────────────────
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+            _pendingFormId = null;
+            _pendingReasonId = null;
+        }
+
+        // close on backdrop click
+        document.querySelectorAll('.modal-overlay').forEach(el => {
+            el.addEventListener('click', e => { if (e.target === el) closeModal(el.id); });
+        });
+
+        // ── BLOCK ────────────────────────────────────────────────────────
+        function openBlock(btn) {
+            const ip = btn.dataset.ip;
+            const formId = btn.dataset.form;
+            const reasonId = btn.dataset.reason;
+
+            _pendingFormId = formId;
+            _pendingReasonId = reasonId;
+
+            document.getElementById('blockModalIp').textContent = ip;
+            document.getElementById('blockReasonInput').value = '';
+            document.getElementById('blockModal').classList.add('active');
+            document.getElementById('blockReasonInput').focus();
+        }
+
+        document.getElementById('blockModalConfirm').addEventListener('click', () => {
+            if (!_pendingFormId) return;
+            const reason = document.getElementById('blockReasonInput').value.trim();
+            if (_pendingReasonId) {
+                document.getElementById(_pendingReasonId).value = reason;
+            }
+            document.getElementById(_pendingFormId).submit();
+            closeModal('blockModal');
+        });
+
+        // submit on Enter inside reason input
+        document.getElementById('blockReasonInput').addEventListener('keydown', e => {
+            if (e.key === 'Enter') document.getElementById('blockModalConfirm').click();
+        });
+
+        // ── UNBLOCK ──────────────────────────────────────────────────────
+        function openUnblock(btn) {
+            const ip = btn.dataset.ip;
+            const formId = btn.dataset.form;
+
+            _pendingFormId = formId;
+
+            document.getElementById('unblockModalIp').textContent = ip;
+            document.getElementById('unblockModal').classList.add('active');
+        }
+
+        document.getElementById('unblockModalConfirm').addEventListener('click', () => {
+            if (!_pendingFormId) return;
+            document.getElementById(_pendingFormId).submit();
+            closeModal('unblockModal');
+        });
+    </script>
+</body>
+
+</html>

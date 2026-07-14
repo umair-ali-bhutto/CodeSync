@@ -1,0 +1,14 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Spring Boot-CodeSyncApplication<CodeSync>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.cs.CodeSync.CodeSyncApplication",
+            "projectName": "CodeSync",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}

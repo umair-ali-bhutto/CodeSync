@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import com.cs.config.CodeSyncLogger;
 import com.cs.util.CodeSyncUtil;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 /**
  * Serves the share editor UI.
  */
@@ -22,6 +24,12 @@ public class SharePageController {
 	@Value("${codesync.max-total-files}")
 	private int maxFilesPerShare;
 
+	@Value("${codesync.version}")
+	private String version;
+
+	@Value("${codesync.version.date}")
+	private String versionDate;
+
 	/**
 	 * Loads the editor page for a given share key.
 	 *
@@ -30,18 +38,22 @@ public class SharePageController {
 	 * @return Thymeleaf template name
 	 */
 	@GetMapping("/share/{key}")
-	public String sharePage(@PathVariable String key, Model model) {
+	public String sharePage(@PathVariable String key, Model model, HttpServletRequest request) {
 		CodeSyncLogger.logInfo("Loading editor page for key: " + key);
 		CodeSyncUtil.validateKey(key);
-		model.addAttribute("shareKey", key);
 
+		String exampleUrl = request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort()
+				+ request.getContextPath() + "/share/" + key;
+
+		model.addAttribute("shareKey", key);
+		model.addAttribute("contextPath", request.getContextPath());
+		model.addAttribute("url", exampleUrl);
+		model.addAttribute("version", version);
+		model.addAttribute("versionDate", versionDate);
 		model.addAttribute("maxFileBytes", maxFileSize.toBytes());
 		model.addAttribute("maxFileMegaBytes", maxFileSize.toMegabytes());
 		model.addAttribute("maxFilesPerShare", maxFilesPerShare);
 		model.addAttribute("maxQueueSize", maxFilesPerShare);
-
-		
-		
 
 		return "sharePage";
 	}

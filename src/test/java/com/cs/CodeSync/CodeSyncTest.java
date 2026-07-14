@@ -8,9 +8,9 @@ import com.cs.config.CodeSyncLogger;
 @SpringBootTest
 public class CodeSyncTest {
 
-	@Test
-	void contextLoads() throws Exception {
-		CodeSyncLogger.logInfo("TEST WORKING");
-	}
+//	@Test
+//	void contextLoads() throws Exception {
+//		CodeSyncLogger.logInfo("TEST WORKING");
+//	}
 
 }

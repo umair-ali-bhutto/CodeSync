@@ -6,6 +6,9 @@ import com.cs.config.CodeSyncLogger;
 import com.cs.entity.CodeSync;
 import com.cs.repository.CodeSyncRepository;
 
+import io.github.resilience4j.retry.annotation.Retry;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+
 import jakarta.transaction.Transactional;
 
 /**
@@ -27,6 +30,8 @@ public class CodeSyncService {
 	 * @param shareKey unique share identifier
 	 * @return CodeSync entity
 	 */
+	@Retry(name = "codeSyncService", fallbackMethod = "getOrCreateFallback")
+	@CircuitBreaker(name = "codeSyncService", fallbackMethod = "getOrCreateFallback")
 	public CodeSync getOrCreate(String shareKey) {
 		return repository.findByShareKey(shareKey).orElseGet(() -> {
 			CodeSyncLogger.logInfo("Creating new share: " + shareKey);
@@ -48,6 +53,17 @@ public class CodeSyncService {
 		CodeSync share = getOrCreate(shareKey);
 		share.setContent(content);
 		return repository.save(share);
+	}
+
+	public CodeSync getOrCreateFallback(String shareKey, Throwable ex) {
+
+		CodeSyncLogger.logInfo(getClass(), "Database unavailable <------> " + ex.getMessage());
+
+		CodeSync fallback = new CodeSync();
+		fallback.setShareKey(shareKey);
+		fallback.setContent("Service temporarily unavailable");
+
+		return fallback;
 	}
 
 }

@@ -60,6 +60,7 @@ body:
         - iOS
         - Android
         - Web Browser
+        - Other
     validations:
       required: false
 

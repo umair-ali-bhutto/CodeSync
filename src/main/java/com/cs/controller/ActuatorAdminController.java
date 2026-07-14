@@ -39,6 +39,7 @@ public class ActuatorAdminController {
 		categories.put("JVM Threads", new TreeMap<>());
 		categories.put("System", new TreeMap<>());
 		categories.put("HTTP & Web", new TreeMap<>());
+		categories.put("Resilience4j", new TreeMap<>());
 		categories.put("Other", new TreeMap<>());
 
 		int totalMetrics = 0;
@@ -64,6 +65,8 @@ public class ActuatorAdminController {
 					categories.get("System").put(name, formatted);
 				} else if (name.startsWith("http") || name.startsWith("tomcat")) {
 					categories.get("HTTP & Web").put(name, formatted);
+				} else if (name.startsWith("resilience4j")) {
+					categories.get("Resilience4j").put(name, formatted);
 				} else {
 					categories.get("Other").put(name, formatted);
 				}
@@ -80,7 +83,7 @@ public class ActuatorAdminController {
 		model.addAttribute("refreshTime", java.time.LocalDateTime.now()
 				.format(java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm:ss")));
 
-		return "status";
+		return "admin/status";
 	}
 
 	private String formatMetric(String name, double value) {
