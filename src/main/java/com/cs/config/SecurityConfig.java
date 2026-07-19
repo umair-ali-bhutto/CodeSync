@@ -59,15 +59,21 @@ public class SecurityConfig {
 	@Value("${dashboard.user.password}")
 	private String userPassword;
 
+	@Value("${spring.h2.console.path:/h2-console}")
+	private String h2ConsolePath;
+
 	/**
 	 * Main Security Filter Chain - Modern Spring Security 6.x approach
 	 */
 	@SuppressWarnings("unused")
 	@Bean
 	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+		String h2ConsolePattern = h2ConsolePath.endsWith("/**") ? h2ConsolePath : h2ConsolePath + "/**";
 
 		http.addFilterBefore(requestLoggingFilter(), UsernamePasswordAuthenticationFilter.class)
-				.csrf(csrf -> csrf.ignoringRequestMatchers("/api/**", "/logsService", "/actuator/**", "/login"))
+				.csrf(csrf -> csrf
+						.ignoringRequestMatchers("/api/**", "/logsService", "/actuator/**", "/login", h2ConsolePattern))
+				.headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
 				.authorizeHttpRequests(auth -> auth
 
 						// Public API's and Logs
@@ -90,6 +96,9 @@ public class SecurityConfig {
 						.requestMatchers("/admin/dashboard/download").hasRole("ADMIN")
 						.requestMatchers("/admin/dashboard/status").hasRole("ADMIN")
 						.requestMatchers("/admin/ip-management/**").hasRole("ADMIN")
+
+						// H2 Console
+						.requestMatchers(h2ConsolePattern).hasRole("ADMIN")
 
 						// swagger
 						.requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").hasRole("ADMIN")

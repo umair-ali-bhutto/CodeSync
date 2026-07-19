@@ -78,7 +78,7 @@ http://your-server:8082/codesync/share/{your-key}
 ```
 
 **Live Example:**  
-[http://172.190.1.223:8082/codesync/share/umair](http://172.190.1.223:8082/codesync/share/umair)
+[http://172.190.1.95:8082/codesync/share/umair](http://172.190.1.95:8082/codesync/share/umair)
 
 > 💡 **Pro Tip**: Any user with the same URL sees and edits the same content in real-time - perfect for collaboration!
 

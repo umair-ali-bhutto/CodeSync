@@ -71,6 +71,9 @@ public class CodeSyncSharedFile {
 	@Column(name = "IS_FILE_MOVED", nullable = false)
 	private Boolean isFileMoved = false;
 
+	@Column(name = "IS_FILE_DELETED_DIRECTLY", nullable = false)
+	private Boolean isFileDeletedDirectly = false;
+
 	@PrePersist
 	public void onCreate() {
 		uploadedAt = new Timestamp(System.currentTimeMillis());
@@ -206,4 +209,11 @@ public class CodeSyncSharedFile {
 		this.isFileMoved = isFileMoved;
 	}
 
+	public Boolean getIsFileDeletedDirectly() {
+		return isFileDeletedDirectly;
+	}
+
+	public void setIsFileDeletedDirectly(Boolean isFileDeletedDirectly) {
+		this.isFileDeletedDirectly = isFileDeletedDirectly;
+	}
 }

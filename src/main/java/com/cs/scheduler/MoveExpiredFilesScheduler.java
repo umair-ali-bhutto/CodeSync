@@ -28,7 +28,7 @@ public class MoveExpiredFilesScheduler {
 		if (!schedularEnabled)
 			return;
 		try {
-			CodeSyncLogger.logInfo("MoveExpiredFilesScheduler: running expiry check...");
+			CodeSyncLogger.logInfo("MoveExpiredFilesScheduler: running archived expiry check...");
 			int count = fileService.moveExpiredFiles();
 			if (count > 0) {
 				CodeSyncLogger.logInfo("MoveExpiredFilesScheduler: processed " + count + " file(s).");

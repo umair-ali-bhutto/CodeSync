@@ -1,8 +1,11 @@
 package com.cs.config;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import com.mysql.cj.jdbc.AbandonedConnectionCleanupThread;
+import com.cs.service.SystemCommandService;
+
+//import com.mysql.cj.jdbc.AbandonedConnectionCleanupThread;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
@@ -20,6 +23,9 @@ import jakarta.annotation.PreDestroy;
 @Component
 public class StartUpInit {
 
+	@Autowired
+	private SystemCommandService commandService;
+
 	/**
 	 * Global flag used to enable or disable logging dynamically across the
 	 * application lifecycle.
@@ -36,6 +42,24 @@ public class StartUpInit {
 	public void init() {
 		CodeSyncLogger.logInfo("INIT CALLED");
 		setEnableLogs("Y");
+
+		String memory = commandService.execute(
+				"Get-CimInstance Win32_OperatingSystem | ForEach-Object { "
+						+ "$total=$_.TotalVisibleMemorySize/1024/1024; " + "$free=$_.FreePhysicalMemory/1024/1024; "
+						+ "$used=$total-$free; " + "Write-Host ('Total: {0:N2} GB' -f $total); "
+						+ "Write-Host ('Used: {0:N2} GB' -f $used); " + "Write-Host ('Free: {0:N2} GB' -f $free) }",
+				"free -m | awk '/Mem:/ {printf \"Total: %.2f GB  Used: %.2f GB  Free: %.2f GB   Usage: %.2f%%\\n\",$2/1024,($2-$7)/1024,$7/1024,(($2-$7)/$2)*100}'",
+				20);
+
+		CodeSyncLogger.logInfo("💾 MEMORY => " + memory.trim());
+
+		String cpu = commandService.execute(
+				"Write-Host 'Cores:' (Get-CimInstance Win32_Processor).NumberOfLogicalProcessors; "
+						+ "Write-Host 'Usage:' ((Get-Counter '\\Processor(_Total)\\% Processor Time').CounterSamples.CookedValue).ToString('0.00') '%' ",
+				"printf \"Cores: %s \\t Usage: %s%%\\n\" \"$(nproc)\" \"$(top -bn1 | awk '/Cpu\\(s\\)/ {print 100-$8}')\"",
+				20);
+
+		CodeSyncLogger.logInfo("🧠 CPU => " + cpu.trim());
 	}
 
 	/**
@@ -48,7 +72,8 @@ public class StartUpInit {
 	public void destroy() {
 		setEnableLogs("Y");
 		CodeSyncLogger.logInfo("DESTROY CALLED");
-		AbandonedConnectionCleanupThread.checkedShutdown();
+		// For mysql
+//		AbandonedConnectionCleanupThread.checkedShutdown();
 	}
 
 	/**

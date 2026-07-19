@@ -82,6 +82,9 @@ public class CodeSyncSharedFileService {
 	@Value("${codesync.winscp.script.directory}")
 	private String winScpScriptDirectory;
 
+	@Value("${codesync.file.direct.deletion.enabled:false}")
+	private boolean directDeletionEnabled;
+
 	public CodeSyncSharedFileService(CodeSyncSharedFileRepository repo) {
 		this.repo = repo;
 	}
@@ -226,6 +229,14 @@ public class CodeSyncSharedFileService {
 		if (expired.isEmpty())
 			return 0;
 
+		if (directDeletionEnabled) {
+			List<CodeSyncSharedFile> succeeded = deleteFilesDirectly(expired);
+			repo.saveAll(expired);
+			CodeSyncLogger.logInfo(
+					"moveExpiredFiles: Directly deleted " + succeeded.size() + "/" + expired.size() + " file(s).");
+			return succeeded.size();
+		}
+
 		if (winScpEnabled) {
 			// Validate WinSCP executable exists before doing anything
 			if (!isWinScpAvailable()) {
@@ -309,6 +320,33 @@ public class CodeSyncSharedFileService {
 			return "file";
 		// Strip path separators and dangerous characters
 		return name.replaceAll("[/\\\\:*?\"<>|]", "_").trim();
+	}
+
+	// ---- Delete ALL expired files directly (no transfer) ----
+	private List<CodeSyncSharedFile> deleteFilesDirectly(List<CodeSyncSharedFile> files) {
+		List<CodeSyncSharedFile> succeeded = new java.util.ArrayList<>();
+
+		for (CodeSyncSharedFile f : files) {
+			try {
+				Path source = Paths.get(f.getStoredPath());
+
+				if (Files.exists(source)) {
+					Files.delete(source);
+					CodeSyncLogger.logInfo("deleteFilesDirectly: deleted file: " + source);
+				} else {
+					CodeSyncLogger.logInfo("deleteFilesDirectly: source not found, skipping: " + source);
+				}
+
+				f.setIsFileMoved(true);
+				f.setIsFileDeletedDirectly(true);
+				succeeded.add(f);
+
+			} catch (Exception e) {
+				CodeSyncLogger.logError(getClass(), "deleteFilesDirectly Exception for fileId: " + f.getFileId(), e);
+			}
+		}
+
+		return succeeded;
 	}
 
 	// ---- Validate WinSCP exe exists on disk ----

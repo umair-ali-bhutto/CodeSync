@@ -6,6 +6,21 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ---
 
+## [V-2.1.1] 19-JUL-2026
+
+### Added 19-JUL-2026
+
+- h2 Database support
+- direct file deletion functionality
+- added highlightjs https://github.com/highlightjs/highlight.js/blob/main/README.md
+- added link to changelog
+- added BANNER.txt
+- some stats logged as well
+
+### Changed 19-JUL-2026
+
+- minor bugs fixes with local ips
+
 ## [V-2.1.0] 09-JUN-2026 <--> 14-JUL-2026
 
 ### Added 09-JUN-2026
@@ -15,9 +30,8 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 ### Changed 09-JUN-2026
 
 - updated exception auth controller for proper appropriate responses
-- Fixed error page routing 
+- Fixed error page routing
 - some minor bugs fixation
-
 
 ### Added 10-JUN-2026
 
@@ -50,7 +64,6 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 ### Changed 14-JUL-2026
 
 - Added version date from application.properties
-
 
 ## [V-2.0.0] 10-MAY-2026 <--> 18-MAY-2026
 

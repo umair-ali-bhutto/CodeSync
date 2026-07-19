@@ -7,6 +7,11 @@
     <title>Code Sync</title>
     <link rel="icon" href="https://umair-ali-bhutto.github.io/assets/CodePenIcon/logo.png">
 
+    <!-- Highlight JS -->
+    <link rel="stylesheet" id="hljs-theme"
+        href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
     <!-- ==================== Meta Information ==================== -->
     <meta name="author" content="Umair Ali Bhutto">
     <meta name="description"
@@ -182,6 +187,7 @@
 
         /* Toggle */
         .toggle {
+            display: inline-block;
             cursor: pointer;
             width: 46px;
             height: 22px;
@@ -210,6 +216,49 @@
 
         .toggle.active::before {
             transform: translateX(24px);
+        }
+
+
+        /* ---- Highlight theme dropdown ---- */
+        .hljs-theme-select {
+            appearance: none;
+            -webkit-appearance: none;
+            cursor: pointer;
+            padding: 5px 28px 5px 10px;
+            border-radius: 6px;
+            border: 1.5px solid var(--border-light);
+            background: var(--card-light) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="6" viewBox="0 0 10 6"><path d="M0 0l5 6 5-6z" fill="%23888"/></svg>') no-repeat right 9px center;
+            color: var(--text-light);
+            font-size: 0.82rem;
+            font-weight: 500;
+            box-shadow: 0 2px 5px var(--shadow);
+            transition: border-color 0.15s, background var(--transition), color var(--transition);
+            max-width: 160px;
+        }
+
+        .hljs-theme-select:hover {
+            border-color: var(--accent);
+        }
+
+        .hljs-theme-select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(0, 91, 138, 0.15);
+        }
+
+        body.dark .hljs-theme-select {
+            background-color: var(--card-dark);
+            color: var(--text-dark);
+            border-color: var(--border-dark);
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="6" viewBox="0 0 10 6"><path d="M0 0l5 6 5-6z" fill="%23aaa"/></svg>');
+        }
+
+        @media(max-width: 640px) {
+            .hljs-theme-select {
+                font-size: 0.78rem;
+                padding: 5px 24px 5px 8px;
+                max-width: 120px;
+            }
         }
 
         /* Loader */
@@ -308,12 +357,15 @@
             font-size: 15px;
             border-radius: var(--radius);
             border: 1.5px solid var(--border-light);
-            background: var(--editor-bg-light);
-            color: var(--text-light);
+            background: transparent;
+            color: transparent;
+            caret-color: var(--text-light);
             resize: vertical;
             box-shadow: 0 3px 12px var(--shadow);
             outline: none;
             line-height: 1.6;
+            position: relative;
+            z-index: 2;
             transition: background var(--transition), color var(--transition), border-color var(--transition);
         }
 
@@ -323,13 +375,60 @@
         }
 
         body.dark #editor {
-            background: var(--editor-bg-dark);
-            color: var(--text-dark);
+            background: transparent;
+            color: transparent;
+            caret-color: var(--text-dark);
             border-color: var(--border-dark);
         }
 
         body.dark #editor:focus {
             box-shadow: 0 0 0 3px rgba(0, 119, 182, 0.2);
+        }
+
+        /* ---- Highlight overlay layer ---- */
+        .editor-wrap {
+            position: relative;
+            flex: 1;
+            display: flex;
+            min-height: 300px;
+        }
+
+        #highlight-layer {
+            position: absolute;
+            inset: 0;
+            margin: 0;
+            padding: 1rem;
+            font-family: 'Courier New', 'Cascadia Code', monospace;
+            font-size: 15px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            overflow: auto;
+            border-radius: var(--radius);
+            border: 1.5px solid var(--border-light);
+            background: var(--editor-bg-light);
+            box-shadow: 0 3px 12px var(--shadow);
+            pointer-events: none;
+            z-index: 1;
+            transition: background var(--transition), border-color var(--transition);
+        }
+
+        #highlight-layer code.hljs {
+            background: transparent !important;
+            padding: 0 !important;
+            font-family: inherit;
+            font-size: inherit;
+            line-height: inherit;
+            color: var(--text-light);
+        }
+
+        body.dark #highlight-layer {
+            background: var(--editor-bg-dark);
+            border-color: var(--border-dark);
+        }
+
+        body.dark #highlight-layer code.hljs {
+            color: var(--text-dark);
         }
 
         /* ---- Code Tab toolbar ---- */
@@ -736,6 +835,184 @@
             text-decoration: underline;
         }
 
+
+        /* ---- Footer highlight-enable toggle ---- */
+        .footer-hljs-toggle-wrap {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            /* margin-left: 1%; */
+            vertical-align: middle;
+        }
+
+        .footer-hljs-label {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--accent);
+            letter-spacing: 0.2px;
+            cursor: default;
+        }
+
+        body.dark .footer-hljs-label {
+            color: #4db8ff;
+        }
+
+        /* ---- Highlight warning dialog scope buttons ---- */
+        .hljs-warning-scope-actions {
+            display: flex;
+            gap: 0.6rem;
+            margin-top: 1.2rem;
+            flex-wrap: wrap;
+        }
+
+        .hljs-warning-scope-actions .btn {
+            flex: 1;
+            min-width: 140px;
+        }
+
+        .hljs-warning-cancel {
+            display: block;
+            margin: 0.8rem auto 0;
+            background: none;
+            border: none;
+            color: #888;
+            font-size: 0.8rem;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        /* ---- Highlight warning dialog — glow-up ---- */
+        .hljs-warning-box {
+            position: relative;
+            overflow: hidden;
+            background-image: linear-gradient(var(--card-light), var(--card-light)),
+                linear-gradient(135deg, #667eea, #764ba2, #f093fb, #667eea);
+            background-origin: border-box;
+            background-clip: padding-box, border-box;
+            border: 2px solid transparent;
+            animation: hljsWarningPop 0.35s cubic-bezier(.34, 1.56, .64, 1);
+        }
+
+        body.dark .hljs-warning-box {
+            background-image: linear-gradient(var(--card-dark), var(--card-dark)),
+                linear-gradient(135deg, #667eea, #764ba2, #f093fb, #667eea);
+        }
+
+        @keyframes hljsWarningPop {
+            from {
+                opacity: 0;
+                transform: scale(0.86) translateY(12px);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .hljs-warning-icon {
+            font-size: 2.6rem;
+            text-align: center;
+            margin-bottom: 0.3rem;
+            animation: hljsIconFloat 2.4s ease-in-out infinite;
+        }
+
+        @keyframes hljsIconFloat {
+
+            0%,
+            100% {
+                transform: translateY(0) rotate(0deg);
+            }
+
+            50% {
+                transform: translateY(-6px) rotate(-6deg);
+            }
+        }
+
+        .hljs-warning-box h3 {
+            text-align: center;
+            background: linear-gradient(90deg, #667eea, #764ba2, #f093fb, #667eea);
+            background-size: 300% auto;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: hljsGradientShift 4s linear infinite;
+            font-size: 1.3rem;
+            margin-bottom: 0.5rem;
+        }
+
+        @keyframes hljsGradientShift {
+            to {
+                background-position: 300% center;
+            }
+        }
+
+        .hljs-warning-box .feedback-sub {
+            text-align: center;
+            line-height: 1.5;
+        }
+
+        .hljs-warning-scope-actions .btn {
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            padding: 0.7rem 0.8rem;
+            border-radius: 10px;
+            transition: transform 0.15s, box-shadow 0.2s;
+        }
+
+        .hljs-warning-scope-actions .btn:hover {
+            transform: translateY(-3px) scale(1.02);
+        }
+
+        #hljs-scope-share {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            box-shadow: 0 3px 14px rgba(102, 126, 234, 0.4);
+        }
+
+        #hljs-scope-share:hover {
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.55);
+        }
+
+        #hljs-scope-global {
+            background: linear-gradient(135deg, #444, #222);
+            box-shadow: 0 3px 14px rgba(0, 0, 0, 0.3);
+        }
+
+        body.dark #hljs-scope-global {
+            background: linear-gradient(135deg, #3a3a55, #26263d);
+        }
+
+        .hljs-scope-btn-title {
+            font-size: 0.88rem;
+            font-weight: 700;
+        }
+
+        .hljs-scope-btn-sub {
+            font-size: 0.68rem;
+            font-weight: 400;
+            opacity: 0.85;
+        }
+
+        .hljs-warning-cancel:hover {
+            color: var(--danger);
+        }
+
+        /* ---- Disabled-highlight state on editor ---- */
+        .editor-wrap.hljs-disabled #highlight-layer {
+            display: none;
+        }
+
+        .editor-wrap.hljs-disabled #editor {
+            color: var(--text-light);
+            background: var(--editor-bg-light);
+        }
+
+        body.dark .editor-wrap.hljs-disabled #editor {
+            color: var(--text-dark);
+            background: var(--editor-bg-dark);
+        }
+
         /* ---- for breaking ---- */
 
         .mobile-break {
@@ -982,7 +1259,7 @@
         .footer-feedback-btn {
             display: inline-flex;
             align-items: center;
-            margin-left: 1%;
+            /* margin-left: 1%; */
             gap: 0.3rem;
             padding: 3px 20px;
             border-radius: 6px;
@@ -1036,6 +1313,9 @@
             <button class="btn danger" id="del-all-btn" style="display:none">🗑️ Delete All</button>
             <button class="btn" id="dl-all-btn" style="display:none">⬇️ Download All</button>
 
+            <select class="hljs-theme-select" id="hljs-theme-select" title="Syntax highlight theme"
+                style="display:none"></select>
+
             <div class="loader" id="loader"></div>
             <div class="toggle" id="mode-toggle" title="Toggle dark/light mode"></div>
         </div>
@@ -1056,8 +1336,11 @@
         <!-- ===== CODE TAB ===== -->
         <div class="tab-panel active" id="panel-code">
             <div class="editor-container">
-                <textarea id="editor" spellcheck="false" aria-label="text editor"
-                    placeholder="Write code or text here…"></textarea>
+                <div class="editor-wrap hljs-disabled" id="editor-wrap">
+                    <pre id="highlight-layer" aria-hidden="true"><code id="highlight-code" class="hljs"></code></pre>
+                    <textarea id="editor" spellcheck="false" aria-label="text editor"
+                        placeholder="Write code or text here…"></textarea>
+                </div>
             </div>
         </div>
 
@@ -1162,14 +1445,54 @@
         </div>
     </div>
 
+
+    <!-- Highlight.js enable warning + scope choice -->
+    <div class="feedback-overlay" id="hljs-warning-overlay">
+        <div class="feedback-box hljs-warning-box">
+            <button class="feedback-close" id="hljs-warning-close" title="Close">✕</button>
+            <div class="hljs-warning-icon">🎨✨</div>
+            <h3>Light Up Your Code?</h3>
+            <p class="feedback-sub">
+                Syntax highlighting makes your code pop with colors 🌈 — but it scans the full text
+                on every change, so very large shares may feel a touch slower. Totally worth it for most cases! 🚀
+            </p>
+            <div class="hljs-warning-scope-actions">
+                <button class="btn" id="hljs-scope-share">
+                    <span class="hljs-scope-btn-title">🔑 This Share Only</span>
+                    <br />
+                    <span class="hljs-scope-btn-sub">Just for this link</span>
+                </button>
+                <button class="btn secondary" id="hljs-scope-global">
+                    <span class="hljs-scope-btn-title">🌐 All Shares</span>
+                    <br />
+                    <span class="hljs-scope-btn-sub">Set as my default</span>
+                </button>
+            </div>
+            <button class="hljs-warning-cancel" id="hljs-warning-cancel">Maybe later</button>
+        </div>
+    </div>
+
     <footer role="contentinfo">
         <!-- version -->
-        <p>@ [[${versionDate}]] 🛠️ [[${version}]] (Coded By <a href="mailto:umair.ali@access.net.pk"><b>Umair Ali Bhutto</b></a> 😎)
-             &nbsp; | &nbsp; 
+        <p>@ [[${versionDate}]] 🛠️ [[${version}]] (Coded By
+            <a href="mailto:umair.ali@access.net.pk"><b>Umair Ali Bhutto</b></a> 😎)
+            &nbsp; | &nbsp;
             <a href="https://github.com/umair-ali-bhutto/codesync" target="_blank"><b> GitHub </b></a>
-             &nbsp; | &nbsp; 
+            &nbsp; | &nbsp;
             <button class="footer-feedback-btn" id="feedback-btn">💬 Report Issue / Suggest Feature</button>
+            &nbsp; | &nbsp;
+            <a href="https://github.com/umair-ali-bhutto/CodeSync/blob/main/CHANGELOG.md" target="_blank"><b> 👨‍💻 View
+                    Changelog </b></a>
+            &nbsp; | &nbsp;
+            <span class="footer-hljs-toggle-wrap"
+                title="Highlights your code/text using highlight.js. May slow down very large content.">
+                <span class="footer-hljs-label">✨ Syntax Highlighting</span>
+                <span class="toggle" id="hljs-enable-toggle"></span>
+            </span>
         </p>
+
+
+
     </footer>
 
 
@@ -1209,12 +1532,86 @@
 
         const THEME_KEY = 'codesync-theme-' + shareKey;
 
+        /* ---- Highlight.js theme families (light/dark pair per name) ---- */
+        const HLJS_THEMES = {
+            github: { label: 'GitHub', light: 'github.min.css', dark: 'github-dark.min.css' },
+            atomOne: { label: 'Atom One', light: 'atom-one-light.min.css', dark: 'atom-one-dark.min.css' },
+            vs: { label: 'VS', light: 'vs.min.css', dark: 'vs2015.min.css' },
+            stackoverflow: { label: 'Stack Overflow', light: 'stackoverflow-light.min.css', dark: 'stackoverflow-dark.min.css' },
+            tokyoNight: { label: 'Tokyo Night', light: 'tokyo-night-light.min.css', dark: 'tokyo-night-dark.min.css' },
+            gradient: { label: 'Gradient', light: 'gradient-light.min.css', dark: 'gradient-dark.min.css' },
+            panda: { label: 'Panda', light: 'panda-syntax-light.min.css', dark: 'panda-syntax-dark.min.css' },
+            solarized: { label: 'Solarized', light: 'base16/solarized-light.min.css', dark: 'base16/solarized-dark.min.css' },
+
+            monokai: { label: 'Monokai', light: 'monokai-sublime.min.css', dark: 'monokai.min.css' },
+            nord: { label: 'Nord', light: 'nord.min.css', dark: 'nord.min.css' }, // Nord uses a single mid-tone aesthetic
+            gruvbox: { label: 'Gruvbox', light: 'base16/gruvbox-light-hard.min.css', dark: 'base16/gruvbox-dark-hard.min.css' },
+            nightOwl: { label: 'Night Owl', light: 'nnfx-light.min.css', dark: 'night-owl.min.css' },
+            intellij: { label: 'IntelliJ / JetBrains', light: 'intellij-light.min.css', dark: 'androidstudio.min.css' },
+            a11y: { label: 'A11y (Accessible)', light: 'a11y-light.min.css', dark: 'a11y-dark.min.css' },
+            kimbie: { label: 'Kimbie', light: 'kimbie-light.min.css', dark: 'kimbie-dark.min.css' },
+            paraiso: { label: 'Paraiso', light: 'paraiso-light.min.css', dark: 'paraiso-dark.min.css' }
+        };
+        const DEFAULT_HLJS_THEME = 'github'; // <-- configurable default
+        const HLJS_THEME_KEY = 'codesync-hljs-theme-' + shareKey;
+        const HLJS_CDN_BASE = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/';
+
+        const hljsThemeSelect = document.getElementById('hljs-theme-select');
+        Object.entries(HLJS_THEMES).forEach(([key, cfg]) => {
+            const opt = document.createElement('option');
+            opt.value = key;
+            opt.textContent = cfg.label;
+            hljsThemeSelect.appendChild(opt);
+        });
+
+        /* ---- Highlight.js enable/disable state (declared early — switchTab needs it) ---- */
+        const HLJS_ENABLED_GLOBAL_KEY = 'codesync-hljs-enabled-global';
+        const HLJS_ENABLED_SHARE_KEY = 'codesync-hljs-enabled-' + shareKey;
+
+        function getSavedHljsEnabled() {
+            const shareVal = localStorage.getItem(HLJS_ENABLED_SHARE_KEY);
+            if (shareVal !== null) return shareVal === 'true';
+            const globalVal = localStorage.getItem(HLJS_ENABLED_GLOBAL_KEY);
+            if (globalVal !== null) return globalVal === 'true';
+            return false; // default: disabled
+        }
+
+        let hljsEnabled = getSavedHljsEnabled();
+
+        let currentHljsTheme = localStorage.getItem(HLJS_THEME_KEY) || DEFAULT_HLJS_THEME;
+        if (!HLJS_THEMES[currentHljsTheme]) currentHljsTheme = DEFAULT_HLJS_THEME;
+        hljsThemeSelect.value = currentHljsTheme;
+
+        hljsThemeSelect.addEventListener('change', () => {
+            currentHljsTheme = hljsThemeSelect.value;
+            localStorage.setItem(HLJS_THEME_KEY, currentHljsTheme);
+            applyTheme(document.body.classList.contains('dark'));
+        });
+
         function applyTheme(isDark) {
             document.body.classList.toggle('dark', isDark);
             toggle.classList.toggle('active', isDark);
             darkLogo.style.display = isDark ? 'none' : 'block';
             lightLogo.style.display = isDark ? 'block' : 'none';
+
+            const family = HLJS_THEMES[currentHljsTheme] || HLJS_THEMES[DEFAULT_HLJS_THEME];
+            document.getElementById('hljs-theme').href = HLJS_CDN_BASE + (isDark ? family.dark : family.light);
         }
+
+        //         ### More nice light/dark theme pairings
+        // | Light | Dark |
+        // |---|---|
+        // | `github.min.css` | `github-dark.min.css` |
+        // | `atom-one-light.min.css` | `atom-one-dark.min.css` |
+        // | `vs.min.css` | `vs2015.min.css` |
+        // | `xcode.min.css` | `dracula.min.css` |
+        // | `stackoverflow-light.min.css` | `stackoverflow-dark.min.css` |
+        // | `tokyo-night-light.min.css` | `tokyo-night-dark.min.css` |
+        // | `nord.min.css` (works ok both ways, muted) | `nord.min.css` |
+        // | `gradient-light.min.css` | `gradient-dark.min.css` |
+        // | `panda-syntax-light.min.css` | `panda-syntax-dark.min.css` |
+        // | `base16/solarized-light.min.css` | `base16/solarized-dark.min.css` |
+
 
         // Load saved preference on page open
         const savedTheme = localStorage.getItem(THEME_KEY);
@@ -1280,6 +1677,7 @@
             const fileButtons = ['dl-all-btn', 'refresh-files-btn', 'del-all-btn'];
             codeButtons.forEach(id => document.getElementById(id).style.display = (tab === 'code' ? '' : 'none'));
             fileButtons.forEach(id => document.getElementById(id).style.display = (tab === 'files' ? '' : 'none'));
+            document.getElementById('hljs-theme-select').style.display = (tab === 'code' && hljsEnabled) ? '' : 'none';
 
             if (tab === 'files') loadFileList();
         }
@@ -1292,15 +1690,95 @@
         const editor = document.getElementById("editor");
         let debounceTimer, lastContent = "", userTyping = false;
 
+        /* ---- Highlight overlay engine (no virtualization) ---- */
+        const hlLayer = document.getElementById("highlight-layer");
+        const hlCode = document.getElementById("highlight-code");
+
+        function highlightSync(text) {
+            if (!hljsEnabled) return; // NEW — skip entirely when the user has it off
+            // trailing newline fix so line counts stay aligned with the textarea
+            hlCode.textContent = text.endsWith('\n') ? text + ' ' : text;
+            hlCode.className = 'hljs';
+            delete hlCode.dataset.highlighted;
+            hljs.highlightElement(hlCode);
+            hlLayer.scrollTop = editor.scrollTop;
+            hlLayer.scrollLeft = editor.scrollLeft;
+        }
+
+        // keep overlay scroll in sync while typing/scrolling
+        editor.addEventListener('scroll', () => {
+            hlLayer.scrollTop = editor.scrollTop;
+            hlLayer.scrollLeft = editor.scrollLeft;
+        });
+
+        // keep overlay size in sync if the textarea is resized (it has resize:vertical)
+        const editorResizeObs = new ResizeObserver(() => {
+            hlLayer.style.height = editor.offsetHeight + 'px';
+            hlLayer.style.width = editor.offsetWidth + 'px';
+        });
+        editorResizeObs.observe(editor);
+
+        /* ---- Highlight.js enable/disable toggle + warning dialog ---- */
+        const editorWrap = document.getElementById('editor-wrap');
+        const hljsEnableToggle = document.getElementById('hljs-enable-toggle');
+        const hljsWarningOverlay = document.getElementById('hljs-warning-overlay');
+
+        function setHljsEnabled(enabled) {
+            hljsEnabled = enabled;
+            hljsEnableToggle.classList.toggle('active', enabled);
+            editorWrap.classList.toggle('hljs-disabled', !enabled);
+            hljsThemeSelect.style.display = (enabled && currentTab === 'code') ? '' : 'none';
+            if (enabled) highlightSync(editor.value);
+        }
+
+        setHljsEnabled(hljsEnabled); // apply saved/default state now that the editor exists
+
+        hljsEnableToggle.addEventListener('click', () => {
+            if (hljsEnabled) {
+                // turning OFF — clear any stored preference (share-specific AND global)
+                // so old values don't linger and silently re-enable highlighting later
+                localStorage.removeItem(HLJS_ENABLED_SHARE_KEY);
+                localStorage.removeItem(HLJS_ENABLED_GLOBAL_KEY);
+                setHljsEnabled(false);
+            } else {
+                // turning ON — must pick a scope first, toggle stays off until then
+                hljsWarningOverlay.classList.add('visible');
+            }
+        });
+
+        document.getElementById('hljs-scope-share').addEventListener('click', () => {
+            localStorage.setItem(HLJS_ENABLED_SHARE_KEY, 'true');
+            hljsWarningOverlay.classList.remove('visible');
+            setHljsEnabled(true);
+        });
+
+        document.getElementById('hljs-scope-global').addEventListener('click', () => {
+            localStorage.setItem(HLJS_ENABLED_GLOBAL_KEY, 'true');
+            localStorage.removeItem(HLJS_ENABLED_SHARE_KEY); // let this share follow the new global default
+            hljsWarningOverlay.classList.remove('visible');
+            setHljsEnabled(true);
+        });
+
+        function closeHljsWarning() {
+            hljsWarningOverlay.classList.remove('visible'); // no scope chosen → stays disabled
+        }
+        document.getElementById('hljs-warning-close').addEventListener('click', closeHljsWarning);
+        document.getElementById('hljs-warning-cancel').addEventListener('click', closeHljsWarning);
+        hljsWarningOverlay.addEventListener('click', (e) => {
+            if (e.target === hljsWarningOverlay) closeHljsWarning();
+        });
+
+
         showLoader();
         fetch(apiUrl)
             .then(r => { showStatus(r.status, "load"); return r.text(); })
-            .then(t => { editor.value = t; lastContent = t; })
+            .then(t => { editor.value = t; lastContent = t; highlightSync(t); })
             .catch(() => showStatus(0, "load"))
             .finally(hideLoader);
 
         editor.addEventListener("input", function () {
             userTyping = true;
+            highlightSync(editor.value);
             clearTimeout(debounceTimer);
             debounceTimer = setTimeout(() => {
                 showLoader();
@@ -1320,7 +1798,7 @@
             pollInProgress = true; showLoader();
             fetch(apiUrl)
                 .then(r => { showStatus(r.status, "poll"); if (!r.ok) throw new Error(r.status); return r.text(); })
-                .then(t => { if (t !== lastContent) { editor.value = t; lastContent = t; } })
+                .then(t => { if (t !== lastContent) { editor.value = t; lastContent = t; highlightSync(t); } })
                 .catch(() => showStatus(0, "poll"))
                 .finally(() => { pollInProgress = false; hideLoader(); pollTimer = setTimeout(poll, 3000); });
         }
@@ -1362,7 +1840,7 @@
             await fetch(apiUrl, { method: "POST", headers: { "Content-Type": "text/plain" }, body: "" })
                 .then(r => showStatus(r.status, "clear"))
                 .catch(() => showStatus(0, "clear"));
-            editor.value = ""; lastContent = "";
+            editor.value = ""; lastContent = ""; highlightSync("");
             document.getElementById("clear-text-btn").textContent = "✅ Cleared!";
             setTimeout(() => document.getElementById("clear-text-btn").textContent = "🧹 Clear", 1500);
             hideLoader(); pollInProgress = false; poll();

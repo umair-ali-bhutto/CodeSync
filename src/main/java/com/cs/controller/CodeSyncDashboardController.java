@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,6 +16,7 @@ import com.cs.config.CodeSyncLogger;
 import com.cs.dto.DashboardSummary;
 import com.cs.entity.CodeSyncAudit;
 import com.cs.service.CodeSyncDashboardService;
+import com.cs.util.CodeSyncUtil;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -22,8 +24,6 @@ import jakarta.servlet.http.HttpServletResponse;
 @Controller
 @RequestMapping("/admin/dashboard")
 public class CodeSyncDashboardController {
-
-	private static final String ALLOWED_IP = "172.191.1.223"; // your allowed machine
 
 	private final CodeSyncDashboardService dashboardService;
 
@@ -97,10 +97,11 @@ public class CodeSyncDashboardController {
 	}
 
 	private void validateIp(HttpServletRequest request) {
-		String ip = request.getRemoteAddr();
-		if (!ALLOWED_IP.equals(ip)) {
-			CodeSyncLogger.logInfo("Unauthorized dashboard access attempt from " + ip);
-			throw new RuntimeException("Access denied for IP: " + ip);
+//		CodeSyncLogger.logInfo("Allowed IPs = " + CodeSyncUtil.getLocalAllowedIps());
+		String clientIp = CodeSyncUtil.getClientIp(request);
+		if (!CodeSyncUtil.getLocalAllowedIps().contains(clientIp)) {
+			CodeSyncLogger.logInfo("Unauthorized dashboard access attempt from " + clientIp);
+			throw new AccessDeniedException("Access denied for IP: " + clientIp);
 		}
 	}
 

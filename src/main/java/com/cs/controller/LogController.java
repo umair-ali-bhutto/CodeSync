@@ -26,14 +26,6 @@ import jakarta.servlet.http.HttpServletRequest;
 @RequestMapping("/logsService")
 public class LogController {
 
-	@Value("${logsservice.allowed-ips:127.0.0.1,::1}")
-	private String allowedIpsRaw;
-
-	private Set<String> getAllowedIps() {
-		return Arrays.stream(allowedIpsRaw.split(",")).map(String::trim).filter(s -> !s.isEmpty())
-				.collect(Collectors.toSet());
-	}
-
 	/**
 	 * Logs a message without disturbing the current log state. - If logs are ON →
 	 * logs normally, state unchanged. - If logs are OFF → temporarily enables,
@@ -65,7 +57,7 @@ public class LogController {
 	public ResponseEntity<Void> saveOrUpdate(@RequestBody LogToggleRequest body, HttpServletRequest request) {
 		try {
 			String clientIp = CodeSyncUtil.getClientIp(request);
-			if (!getAllowedIps().contains(clientIp)) {
+			if (!CodeSyncUtil.getLocalAllowedIps().contains(clientIp)) {
 				logWithRestore("LogsService blocked request from IP: " + clientIp);
 				return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
 			}

@@ -1,7 +1,11 @@
 package com.cs.util;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Set;
+import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import com.cs.config.CodeSyncLogger;
@@ -22,6 +26,13 @@ import jakarta.servlet.http.HttpServletResponse;
  */
 @Component
 public class CodeSyncUtil {
+
+	private static String allowedIpsRaw;
+
+	@Value("${localonly.allowed-ips:127.0.0.1,::1}")
+	public void setAllowedIpsRaw(String value) {
+		CodeSyncUtil.allowedIpsRaw = value;
+	}
 
 	/**
 	 * Maximum allowed length for a share key to prevent abuse, malformed URLs, or
@@ -159,5 +170,13 @@ public class CodeSyncUtil {
 				.format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
 		String timePart = String.valueOf(System.currentTimeMillis()).substring(8);
 		return "CS-BLK-" + datePart + "-" + timePart + "_" + clientIp;
+	}
+
+	/**
+	 * Get Allowed Local IP's
+	 */
+	public static Set<String> getLocalAllowedIps() {
+		return Arrays.stream(allowedIpsRaw.split(",")).map(String::trim).filter(s -> !s.isEmpty())
+				.collect(Collectors.toSet());
 	}
 }
