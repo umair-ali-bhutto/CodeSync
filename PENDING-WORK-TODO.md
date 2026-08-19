@@ -1,20 +1,11 @@
+quote generator
+https://claude.ai/chat/689317bc-7f5d-41d4-83d4-24bad92d9b86
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-				
 	// TODO:
+	// file download asks to keep or not fix this using http how to fix this
     // make logos and css and js localonly avaialble
     // archiving of tables using schedular because h2 does not have it
     // copy file using ssh
@@ -27,11 +18,14 @@
 	// stop ? marking of emojis and other characters
     // how can i add a nice way to handle mantainence
     // from ip management add client addition as well 
+    // remove swagger
     // maybe add flyway as well
+	// preview file (optional)
 	// add yesterdays top clients list as well in dashboard
 	// add currently active clients as well in dashboard
 	// add filter and search in dashboard
 	// add button in dashboard to see data if any against the row (i mean show request data)
+	// add keyboard shortcuts
 	// add function to see if another person is editing (optional not necesssary but i think will need to implement websockets or whatever is best based or maybe something better for live reload)
 	// add functionality to see who is currently connected to that share page
 	// add routes from dashboard
@@ -47,7 +41,10 @@
 	// please download data in excel in dashboard please
 	// show name with ip in below table in dashboard as well i only see ip (currently i only see ip below data)
 	// make ip block feature faster
-
+	// add security so user cannot hit api from outside use token or some session id 
+	// stop ip blocking yourself
+	// light house report fix issue given by it
+	// cancel file upload functionality
 
 
 

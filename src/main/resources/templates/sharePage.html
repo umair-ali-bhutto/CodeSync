@@ -2209,7 +2209,7 @@
                 }
                 // ---------------------------------------------------
 
-                const contentLength = response.headers.get('content-length');
+                const contentLength = response.headers.get('X-Total-Uncompressed-Size');
                 const total = parseInt(contentLength, 10);
                 let loaded = 0;
 
@@ -2228,7 +2228,8 @@
 
                     // Update progress bar
                     if (total && !isNaN(total)) {
-                        const percent = Math.round((loaded / total) * 100);
+                        // const percent = Math.round((loaded / total) * 100);
+                        const percent = Math.min(100, Math.round((loaded / total) * 100));
                         fillEl.style.width = percent + '%';
                         statusEl.textContent = `⬇️ Downloading ZIP... ${percent}%`;
                     } else {

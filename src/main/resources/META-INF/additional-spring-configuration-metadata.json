@@ -1,0 +1,179 @@
+{
+    "properties": [
+        {
+            "name": "spring.h2.console.path",
+            "type": "java.lang.String",
+            "description": "Path where the H2 database web console is exposed."
+        },
+        {
+            "name": "spring.h2.console.enabled",
+            "type": "java.lang.Boolean",
+            "description": "Whether the H2 database web console is enabled."
+        },
+        {
+            "name": "swagger.enabled",
+            "type": "java.lang.Boolean",
+            "description": "Whether Swagger and OpenAPI documentation endpoints are enabled."
+        },
+        {
+            "name": "codesync.version",
+            "type": "java.lang.String",
+            "description": "Application version displayed and used by CodeSync."
+        },
+        {
+            "name": "spring.h2.console.settings.web-allow-others",
+            "type": "java.lang.Boolean",
+            "description": "Whether the H2 web console can be accessed from remote hosts."
+        },
+        {
+            "name": "spring.h2.console.load-on-startup",
+            "type": "java.lang.Integer",
+            "description": "Startup priority for loading the H2 console servlet. Lower values are initialized earlier."
+        },
+        {
+            "name": "spring.h2.console.settings.trace",
+            "type": "java.lang.Boolean",
+            "description": "Whether H2 console trace logging is enabled."
+        },
+        {
+            "name": "codesync.version-date",
+            "type": "java.lang.String",
+            "description": "Release or build date associated with the CodeSync application version."
+        },
+        {
+            "name": "codesync.upload-dir",
+            "type": "java.lang.String",
+            "description": "Local directory where newly uploaded files are temporarily stored."
+        },
+        {
+            "name": "codesync.archive-dir",
+            "type": "java.lang.String",
+            "description": "Local directory where files are moved or archived after processing or expiry."
+        },
+        {
+            "name": "codesync.max-file-size",
+            "type": "java.lang.String",
+            "description": "Maximum allowed size for an individual uploaded file, for example 120MB."
+        },
+        {
+            "name": "codesync.max-total-files",
+            "type": "java.lang.Integer",
+            "description": "Maximum number of files allowed in a single file-sharing operation."
+        },
+        {
+            "name": "codesync.file-expiry.days",
+            "type": "java.lang.Integer",
+            "description": "Number of days after which a file is considered expired."
+        },
+        {
+            "name": "codesync.file-expiry.hours",
+            "type": "java.lang.Integer",
+            "description": "Number of hours after which a file is considered expired."
+        },
+        {
+            "name": "codesync.file-expiry.minutes",
+            "type": "java.lang.Integer",
+            "description": "Number of additional minutes after which a file is considered expired."
+        },
+        {
+            "name": "codesync.file-expiry.cron.enabled",
+            "type": "java.lang.Boolean",
+            "description": "Whether the scheduled file expiry check is enabled."
+        },
+        {
+            "name": "codesync.file-expiry.cron",
+            "type": "java.lang.String",
+            "description": "Cron expression that defines how often the file expiry check is executed."
+        },
+        {
+            "name": "codesync.file-moving.cron.enabled",
+            "type": "java.lang.Boolean",
+            "description": "Whether the scheduled file moving or deletion task is enabled."
+        },
+        {
+            "name": "codesync.file-moving.cron",
+            "type": "java.lang.String",
+            "description": "Cron expression that defines when the file moving or deletion task is executed."
+        },
+        {
+            "name": "codesync.file.direct.deletion.enabled",
+            "type": "java.lang.Boolean",
+            "description": "Whether expired or archived files are deleted directly instead of being transferred to a remote server."
+        },
+        {
+            "name": "codesync.winscp.enabled",
+            "type": "java.lang.Boolean",
+            "description": "Whether WinSCP-based file transfer is enabled."
+        },
+        {
+            "name": "codesync.winscp.sftp-host",
+            "type": "java.lang.String",
+            "description": "Hostname or IP address of the remote SFTP server used by WinSCP."
+        },
+        {
+            "name": "codesync.winscp.sftp-user",
+            "type": "java.lang.String",
+            "description": "Username used to authenticate with the remote SFTP server."
+        },
+        {
+            "name": "codesync.winscp.sftp-password",
+            "type": "java.lang.String",
+            "description": "Password used to authenticate with the remote SFTP server."
+        },
+        {
+            "name": "codesync.winscp.exe-path",
+            "type": "java.lang.String",
+            "description": "Filesystem path to the WinSCP executable or command-line client."
+        },
+        {
+            "name": "codesync.winscp.script.directory",
+            "type": "java.lang.String",
+            "description": "Directory where temporary WinSCP scripts and related transfer files are created."
+        },
+        {
+            "name": "codesync.winscp.remote-base-path",
+            "type": "java.lang.String",
+            "description": "Base directory on the remote server where files are transferred."
+        },
+        {
+            "name": "security.rate.limit.capacity",
+            "type": "java.lang.Integer",
+            "description": "Maximum number of requests or tokens allowed by the rate limiter before requests are restricted."
+        },
+        {
+            "name": "security.rate.limit.refill.seconds",
+            "type": "java.lang.Integer",
+            "description": "Time interval in seconds used to refill the rate limiter."
+        },
+        {
+            "name": "security.rate.limit.to.refill",
+            "type": "java.lang.Integer",
+            "description": "Number of requests or tokens added to the rate limiter during each refill interval."
+        },
+        {
+            "name": "dashboard.admin.username",
+            "type": "java.lang.String",
+            "description": "Username for the CodeSync administrator account."
+        },
+        {
+            "name": "dashboard.admin.password",
+            "type": "java.lang.String",
+            "description": "Password for the CodeSync administrator account."
+        },
+        {
+            "name": "dashboard.user.username",
+            "type": "java.lang.String",
+            "description": "Username for the standard CodeSync user account."
+        },
+        {
+            "name": "dashboard.user.password",
+            "type": "java.lang.String",
+            "description": "Password for the standard CodeSync user account."
+        },
+        {
+            "name": "localonly.allowed-ips",
+            "type": "java.lang.String",
+            "description": "Comma-separated list of IP addresses allowed to access services restricted to local or trusted hosts."
+        }
+    ]
+}

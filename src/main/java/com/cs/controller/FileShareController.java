@@ -5,6 +5,8 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -230,11 +232,23 @@ public class FileShareController {
 			response.sendError(HttpStatus.GONE.value(), "All files have expired.");
 			return;
 		}
+		
+		
+		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss_SSS");
 
-		String zipFileName = "codesync_" + key + "_" + System.currentTimeMillis() + ".zip";
+		String timestamp = LocalDateTime.now().format(formatter);
+
+		String zipFileName = "codesync_" + key + "_" + timestamp + ".zip";
+//		String zipFileName = "codesync_" + key + "_" + System.currentTimeMillis() + ".zip";
 		response.setContentType("application/zip");
 		response.setHeader(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + zipFileName + "\"");
 
+		// Approximate total (uncompressed) size for client-side progress tracking.
+		// Actual compressed ZIP size isn't known until streaming completes.
+		long approxTotalSize = validFiles.stream().mapToLong(CodeSyncSharedFile::getFileSize).sum();
+		response.setHeader("X-Total-Uncompressed-Size", String.valueOf(approxTotalSize));
+		
+		
 		try (ZipOutputStream zos = new ZipOutputStream(response.getOutputStream())) {
 			byte[] buffer = new byte[8192];
 			Set<String> usedNames = new HashSet<>();

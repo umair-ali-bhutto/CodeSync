@@ -6,6 +6,16 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ---
 
+## [V-2.1.2] 19-AUG-2026
+
+### Added 19-AUG-2026
+
+- added date time format in zip
+
+### Changed 19-JUL-2026
+
+- fixed large zip download issue
+
 ## [V-2.1.1] 19-JUL-2026
 
 ### Added 19-JUL-2026

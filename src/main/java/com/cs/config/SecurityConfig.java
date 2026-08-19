@@ -176,8 +176,11 @@ public class SecurityConfig {
 					return;
 				}
 
+				boolean isDownloadAll = uri.endsWith("/download-all");
+
 				ContentCachingRequestWrapper wrappedRequest = new ContentCachingRequestWrapper(request, 0);
-				ContentCachingResponseWrapper wrappedResponse = new ContentCachingResponseWrapper(response);
+				HttpServletResponse wrappedResponse = isDownloadAll ? response
+						: new ContentCachingResponseWrapper(response);
 
 				String clientIp = CodeSyncUtil.getClientIp(request);
 				long start = System.currentTimeMillis();
@@ -237,8 +240,8 @@ public class SecurityConfig {
 	/**
 	 * Extracts and logs request details and inserts it into audit.
 	 */
-	private void logAndAudit(ContentCachingRequestWrapper request, ContentCachingResponseWrapper response,
-			String clientIp, long startTime, String additionalData) throws IOException {
+	private void logAndAudit(ContentCachingRequestWrapper request, HttpServletResponse response, String clientIp,
+			long startTime, String additionalData) throws IOException {
 		String method = request.getMethod();
 		String uri = request.getRequestURI();
 		String query = request.getQueryString();
@@ -267,11 +270,14 @@ public class SecurityConfig {
 		}
 
 		String responseBody = "";
-		byte[] responseBuf = response.getContentAsByteArray();
-		if (responseBuf.length > 0) {
-			try {
-				responseBody = new String(responseBuf, response.getCharacterEncoding());
-			} catch (Exception ignored) {
+		if (response instanceof ContentCachingResponseWrapper cachedResponse) {
+			byte[] responseBuf = cachedResponse.getContentAsByteArray();
+			if (responseBuf.length > 0) {
+				try {
+					responseBody = new String(responseBuf, cachedResponse.getCharacterEncoding());
+				} catch (Exception e) {
+					CodeSyncLogger.logError(getClass(), "Exception", e);
+				}
 			}
 		}
 
@@ -311,7 +317,8 @@ public class SecurityConfig {
 		try {
 			uploadedFileSize = (Long) request.getAttribute("uploadedFileSize");
 			uploadedFileName = (String) request.getAttribute("uploadedFileName");
-		} catch (Exception ignored) {
+		} catch (Exception e) {
+			CodeSyncLogger.logError(getClass(), "Exception", e);
 		}
 
 		String uploadInfo = "";
@@ -331,7 +338,9 @@ public class SecurityConfig {
 
 		codeSyncAuditService.saveSafely(log);
 
-		response.copyBodyToResponse();
+		if (response instanceof ContentCachingResponseWrapper cachedResponse) {
+			cachedResponse.copyBodyToResponse();
+		}
 
 	}
 

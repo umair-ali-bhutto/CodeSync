@@ -1,4 +1,3 @@
-${AnsiColor.DEFAULT}[ ⚡ ${AnsiColor.BRIGHT_GREEN}SYSTEM BOOT SEQUENCE INITIATED ⚡ ${AnsiColor.DEFAULT}]
 ${AnsiColor.BRIGHT_MAGENTA}
 ╔═══════════════════════════════════════════════════════╗
 ║    ______          __      _____                      ║
@@ -11,7 +10,7 @@ ${AnsiColor.BRIGHT_MAGENTA}
 ║           CODE AND FILE SHARING PLATFORM              ║
 ╚═══════════════════════════════════════════════════════╝
 ${AnsiColor.BRIGHT_BLACK}
-Welcome To Code Sync Developed with ❤️ by: ${AnsiColor.BLACK} Umair Ali Bhutto 
+Welcome To Code Sync Developed with ❤️  by: ${AnsiColor.BRIGHT_MAGENTA} Umair Ali Bhutto 
 
 ┌───────────────────────────────────────────────┐
 │ 🚀 Application     : ${application.title:CodeSync}
@@ -19,15 +18,15 @@ Welcome To Code Sync Developed with ❤️ by: ${AnsiColor.BLACK} Umair Ali Bhut
 │ ☕ Java            : ${java.version}
 │ 🍃 Spring Boot     : ${spring-boot.version}
 │ 🔥 Process ID      : ${pid:}
-│ 🖥️ OS Name         : ${os.name}
-│ 🏷️ OS Version      : ${os.version}
-│ 🏗️ OS Architecture : ${os.arch}
+│ 🖥️  OS Name         : ${os.name}
+│ 🏷️  OS Version      : ${os.version}
+│ 🏗️  OS Architecture : ${os.arch}
 │ 👤 User            : ${user.name}
 │ 📂 User Home       : ${user.home}
 │ 📁 Working Dir     : ${user.dir}
 │ 🔧 JVM Vendor      : ${java.vendor}
 │ 🏭 JVM Name        : ${java.vm.name}
-│ 🏷️ JVM Version     : ${java.vm.version}
+│ 🏷️  JVM Version     : ${java.vm.version}
 │ 🧠 JVM Runtime     : ${java.runtime.name}
 │ 📦 JVM Home        : ${java.home}
 └───────────────────────────────────────────────┘${AnsiColor.DEFAULT}

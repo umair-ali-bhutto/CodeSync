@@ -27,7 +27,7 @@ public class SharePageController {
 	@Value("${codesync.version}")
 	private String version;
 
-	@Value("${codesync.version.date}")
+	@Value("${codesync.version-date}")
 	private String versionDate;
 
 	/**
