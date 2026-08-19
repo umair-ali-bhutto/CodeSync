@@ -12,7 +12,7 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 - added date time format in zip
 
-### Changed 19-JUL-2026
+### Changed 19-AUG-2026
 
 - fixed large zip download issue
 
