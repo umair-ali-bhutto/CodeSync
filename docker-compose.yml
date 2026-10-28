@@ -1,0 +1,26 @@
+version: '3.3'
+
+services:
+  codesync:
+    build: .
+    container_name: codesync
+
+    ports:
+      - "8082:8080"
+
+    environment:
+      - CODESYNC_DASHBOARD_ADMIN_NAME=${CODESYNC_DASHBOARD_ADMIN_NAME}
+      - CODESYNC_DASHBOARD_ADMIN_PASS=${CODESYNC_DASHBOARD_ADMIN_PASS}
+      - CODESYNC_DASHBOARD_USER_NAME=${CODESYNC_DASHBOARD_USER_NAME}
+      - CODESYNC_DASHBOARD_USER_PASS=${CODESYNC_DASHBOARD_USER_PASS}
+
+    volumes:
+      - codesync-data:/app/data
+    ## LOCAL  
+    # volumes:
+      # - ./codesync-data:/app/data
+
+    restart: unless-stopped
+
+volumes:
+  codesync-data:

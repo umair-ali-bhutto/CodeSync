@@ -1,5 +1,7 @@
 package com.cs.controller;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -29,6 +31,27 @@ public class SharePageController {
 
 	@Value("${codesync.version-date}")
 	private String versionDate;
+	
+	@Value("${codesync.autoreload.enabled:true}")
+	private boolean autoReloadEnabled;
+
+	@Value("${codesync.autoreload.max-consecutive-errors:10}")
+	private int autoReloadMaxErrors;
+
+	@Value("${codesync.autoreload.countdown-seconds:5}")
+	private int autoReloadCountdown;
+
+	@Value("${codesync.autoreload.max-reloads:3}")
+	private int autoReloadMaxReloads;
+
+	@Value("${codesync.autoreload.reload-window-seconds:600}")
+	private int autoReloadWindowSeconds;
+
+	@Value("${codesync.autoreload.require-reachable:false}")
+	private boolean autoReloadRequireReachable;
+
+	@Value("${codesync.autoreload.ignored-statuses:}")
+	private List<Integer> autoReloadIgnoredStatuses;
 
 	/**
 	 * Loads the editor page for a given share key.
@@ -54,7 +77,14 @@ public class SharePageController {
 		model.addAttribute("maxFileMegaBytes", maxFileSize.toMegabytes());
 		model.addAttribute("maxFilesPerShare", maxFilesPerShare);
 		model.addAttribute("maxQueueSize", maxFilesPerShare);
-
+		model.addAttribute("autoReloadEnabled", autoReloadEnabled);
+		model.addAttribute("autoReloadMaxErrors", autoReloadMaxErrors);
+		model.addAttribute("autoReloadCountdown", autoReloadCountdown);
+		model.addAttribute("autoReloadMaxReloads", autoReloadMaxReloads);
+		model.addAttribute("autoReloadWindowMs", autoReloadWindowSeconds * 1000L);
+		model.addAttribute("autoReloadRequireReachable", autoReloadRequireReachable);
+		model.addAttribute("autoReloadIgnoredStatuses", autoReloadIgnoredStatuses);
+		
 		return "sharePage";
 	}
 }

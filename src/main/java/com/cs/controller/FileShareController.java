@@ -32,10 +32,12 @@ import org.springframework.web.multipart.MultipartFile;
 import com.cs.config.CodeSyncLogger;
 import com.cs.dto.SharedFileDTO;
 import com.cs.entity.CodeSyncSharedFile;
+import com.cs.exception.InsufficientStorageException;
 import com.cs.service.CodeSyncClientCache;
 import com.cs.service.CodeSyncSharedFileService;
 import com.cs.util.CodeSyncUtil;
 
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -82,6 +84,8 @@ public class FileShareController {
 						.body("File limit reached. Maximum " + maxTotalFiles + " active files per share.");
 			}
 
+			fileService.assertUploadAllowed(key, file.getSize());
+
 			CodeSyncSharedFile saved = fileService.store(key, file, ip, clientName);
 			request.setAttribute("uploadedFileSize", file.getSize());
 			request.setAttribute("uploadedFileName", file.getOriginalFilename());
@@ -90,6 +94,13 @@ public class FileShareController {
 		} catch (IllegalArgumentException e) {
 			// File too large
 			return ResponseEntity.status(HttpStatus.CONTENT_TOO_LARGE).body(e.getMessage());
+		} catch (InsufficientStorageException e) {
+			// NEW: not enough disk space to accept this upload
+			return ResponseEntity.status(HttpStatus.INSUFFICIENT_STORAGE).body(e.getMessage());
+		} catch (CallNotPermittedException e) {
+			// NEW: circuit breaker is open — service temporarily unavailable
+			return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+					.body("Upload service is temporarily unavailable. Please try again shortly.");
 		} catch (IOException e) {
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Upload failed.");
 		}
@@ -232,8 +243,7 @@ public class FileShareController {
 			response.sendError(HttpStatus.GONE.value(), "All files have expired.");
 			return;
 		}
-		
-		
+
 		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss_SSS");
 
 		String timestamp = LocalDateTime.now().format(formatter);
@@ -247,8 +257,7 @@ public class FileShareController {
 		// Actual compressed ZIP size isn't known until streaming completes.
 		long approxTotalSize = validFiles.stream().mapToLong(CodeSyncSharedFile::getFileSize).sum();
 		response.setHeader("X-Total-Uncompressed-Size", String.valueOf(approxTotalSize));
-		
-		
+
 		try (ZipOutputStream zos = new ZipOutputStream(response.getOutputStream())) {
 			byte[] buffer = new byte[8192];
 			Set<String> usedNames = new HashSet<>();

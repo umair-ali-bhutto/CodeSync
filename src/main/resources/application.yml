@@ -9,6 +9,7 @@ resilience4j:
         wait-duration-in-open-state: 5s
         permitted-number-of-calls-in-half-open-state: 3
         automatic-transition-from-open-to-half-open-enabled: true
+        ignore-exceptions: com.cs.exception.InsufficientStorageException,com.cs.exception.FileSizeExceededException,java.lang.IllegalArgumentException
 
   retry:
     instances:
@@ -16,6 +17,7 @@ resilience4j:
         # register-health-indicator: true        
         max-attempts: 3
         wait-duration: 1s
+        ignore-exceptions: com.cs.exception.InsufficientStorageException,com.cs.exception.FileSizeExceededException,java.lang.IllegalArgumentException
 
     metrics:
       enabled: true

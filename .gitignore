@@ -24,3 +24,7 @@ mysql/
 db/
 
 application20260719bkp.properties
+.env
+
+clients.txt
+h2-db.txt

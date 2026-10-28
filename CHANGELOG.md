@@ -6,6 +6,22 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ---
 
+
+## [V-2.1.3] 18-SEP-2026 - 28-OCT-2026
+
+### Added 28-OCT-2026
+
+- added auto reload page functionality on too many error
+- fixed footer links colors
+
+
+### Added 18-SEP-2026
+
+- added disk space check so i can return response if file transfers are allowed (windows and linux)
+- added docker file
+
+
+
 ## [V-2.1.2] 19-AUG-2026
 
 ### Added 19-AUG-2026
