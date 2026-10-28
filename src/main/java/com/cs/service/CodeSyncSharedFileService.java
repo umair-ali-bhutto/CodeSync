@@ -1,6 +1,7 @@
 package com.cs.service;
 
 import java.io.IOException;
+import java.nio.file.FileStore;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -24,6 +25,7 @@ import com.cs.config.CodeSyncLogger;
 import com.cs.dto.SharedFileDTO;
 import com.cs.entity.CodeSyncSharedFile;
 import com.cs.exception.FileSizeExceededException;
+import com.cs.exception.InsufficientStorageException;
 import com.cs.repository.CodeSyncSharedFileRepository;
 
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
@@ -40,6 +42,12 @@ import io.github.resilience4j.retry.annotation.Retry;
  */
 @Service
 public class CodeSyncSharedFileService {
+
+	@Value("${codesync.max-total-storage:0}")
+	private DataSize maxTotalStorage;
+
+	@Value("${codesync.min-free-space:500MB}")
+	private DataSize minFreeSpace;
 
 	@Value("${codesync.max-file-size}")
 	private DataSize maxFileSize;
@@ -520,6 +528,67 @@ public class CodeSyncSharedFileService {
 	public int transferFallback(Throwable ex) {
 		CodeSyncLogger.logInfo(getClass(), "SFTP transfer failed <------> " + ex.getMessage());
 		return 0;
+	}
+
+	/**
+	 * Verifies the target disk/volume has enough usable space for the incoming file
+	 * plus a configured safety buffer. Works on both Windows and Linux via
+	 * java.nio.file.FileStore.
+	 *
+	 * @throws InsufficientStorageException if there isn't enough room
+	 * @throws IOException                  if the file store can't be read
+	 */
+	private void checkDiskSpace(Path targetDir, long incomingFileBytes) throws IOException {
+		// targetDir must exist for getFileStore to resolve it
+		Files.createDirectories(targetDir);
+
+		FileStore store = Files.getFileStore(targetDir);
+		long usableBytes = store.getUsableSpace(); // space actually available to this process
+		long requiredBytes = incomingFileBytes + minFreeSpace.toBytes();
+
+		if (usableBytes < requiredBytes) {
+			throw new InsufficientStorageException(usableBytes, requiredBytes, incomingFileBytes);
+		}
+	}
+
+	/**
+	 * Validates the upload against BOTH the app-level storage quota and the
+	 * OS-level disk-space safety buffer. Called BEFORE store(), so neither check
+	 * ever interacts with @Retry / @CircuitBreaker on store().
+	 *
+	 * @throws IllegalArgumentException     if the share key is invalid
+	 * @throws InsufficientStorageException if the quota or disk buffer would be
+	 *                                      exceeded
+	 * @throws IOException                  if the file store can't be read
+	 */
+	public void assertUploadAllowed(String shareKey, long incomingFileBytes) throws IOException {
+		checkStorageQuota(incomingFileBytes);
+
+		Path baseUploadDir = Paths.get(uploadDir).toAbsolutePath().normalize();
+		Path dir = baseUploadDir.resolve(shareKey).normalize();
+		if (!dir.startsWith(baseUploadDir)) {
+			throw new IllegalArgumentException("Invalid share key.");
+		}
+		checkDiskSpace(dir, incomingFileBytes);
+	}
+
+	/**
+	 * Enforces the app-level total storage quota across all active files. Skipped
+	 * entirely if maxTotalStorage is 0 (unset/disabled).
+	 */
+	private void checkStorageQuota(long incomingFileBytes) {
+		long maxBytes = maxTotalStorage.toBytes();
+		if (maxBytes <= 0) {
+			return; // quota disabled
+		}
+
+		long currentTotal = repo.sumActiveFileSizes();
+		long projectedTotal = currentTotal + incomingFileBytes;
+
+		if (projectedTotal > maxBytes) {
+			long remainingQuota = Math.max(0, maxBytes - currentTotal);
+			throw new InsufficientStorageException(remainingQuota, incomingFileBytes, incomingFileBytes);
+		}
 	}
 
 }

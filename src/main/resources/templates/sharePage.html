@@ -812,6 +812,7 @@
 
             --scroll-track: #111827;
             --scroll-thumb: #38bdf8;
+
         }
 
         body.dark header {
@@ -831,10 +832,14 @@
             text-decoration: none;
         }
 
+
         footer a:hover {
             text-decoration: underline;
         }
 
+        body.dark footer a {
+            color: #4db8ff;
+        }
 
         /* ---- Footer highlight-enable toggle ---- */
         .footer-hljs-toggle-wrap {
@@ -1503,6 +1508,16 @@
 
         const apiUrl = /*[[@{/api/share/{key}(key=${shareKey})}]]*/ '';
         const fileApiUrl = /*[[@{/api/files/{key}(key=${shareKey})}]]*/ '';
+
+        const AUTO_RELOAD_CFG = {
+            enabled: /*[[${autoReloadEnabled}]]*/ true,
+            maxConsecutiveErrors: /*[[${autoReloadMaxErrors}]]*/ 10,
+            countdownSeconds: /*[[${autoReloadCountdown}]]*/ 5,
+            maxReloads: /*[[${autoReloadMaxReloads}]]*/ 3,
+            reloadWindowMs: /*[[${autoReloadWindowMs}]]*/ 600000,
+            requireReachable: /*[[${autoReloadRequireReachable}]]*/ false,
+            ignoredStatuses: /*[[${autoReloadIgnoredStatuses}]]*/[]
+        };
     </script>
 
     <script>
@@ -1510,7 +1525,7 @@
         console.log(
             "%c ✨ SYSTEM INITIALIZED WELCOME BRO %c Codsync Version [[${versionDate}]] --- [[${version}]] ",
             "color: #fff; background: #1e1e2f; padding: 8px 12px; font-size: 14px; font-weight: bold; border-left: 5px solid #7289da; border-radius: 4px;",
-            "color: #7289da; background: #2f3136; padding: 8px 12px; font-size: 14px; border-radius: 4px;"
+            "color: #fff; background: #2f3136; padding: 8px 12px; font-size: 14px; border-radius: 4px;"
         );
 
 
@@ -1524,6 +1539,129 @@
         const MAX_FILES_PER_SHARE = [[${ maxFilesPerShare }]];
         const MAX_QUEUE_SIZE = [[${ maxQueueSize }]];
 
+
+        /* ======================================================
+            AUTO RELOAD ON REPEATED ERRORS  (configurable)
+           ====================================================== */
+        const AUTO_RELOAD = {
+            enabled: AUTO_RELOAD_CFG.enabled,
+            maxConsecutiveErrors: AUTO_RELOAD_CFG.maxConsecutiveErrors,
+            countdownSeconds: AUTO_RELOAD_CFG.countdownSeconds,
+            maxReloads: AUTO_RELOAD_CFG.maxReloads,
+            reloadWindowMs: AUTO_RELOAD_CFG.reloadWindowMs,
+            requireReachable: AUTO_RELOAD_CFG.requireReachable,
+            countsAsError: s => (s < 200 || s >= 300) && !AUTO_RELOAD_CFG.ignoredStatuses.includes(s)
+        };
+
+
+        const AUTO_RELOAD_LOG_KEY = 'codesync-autoreload-log-' + shareKey;
+        const DRAFT_KEY = 'codesync-draft-' + shareKey;
+        let autoReloadErrors = 0;
+        let autoReloadPending = false;
+        let autoReloadTimer = null;
+        let autoReloadBanner = null;
+
+        function trackAutoReload(statusOrError) {
+            if (!AUTO_RELOAD.enabled) return;
+            const status = (typeof statusOrError === 'number') ? statusOrError : 0;
+
+            if (status >= 200 && status < 300) {          // success → reset
+                autoReloadErrors = 0;
+                if (autoReloadPending) cancelAutoReload();
+                return;
+            }
+            if (!AUTO_RELOAD.countsAsError(status)) return; // user-type error → ignore
+
+            autoReloadErrors++;
+            if (autoReloadErrors >= AUTO_RELOAD.maxConsecutiveErrors && !autoReloadPending) {
+                startAutoReload();
+            }
+        }
+
+        function reloadAllowedByGuard() {
+            const now = Date.now();
+            let log = [];
+            try { log = JSON.parse(sessionStorage.getItem(AUTO_RELOAD_LOG_KEY) || '[]'); } catch { }
+            log = log.filter(t => now - t < AUTO_RELOAD.reloadWindowMs);
+            sessionStorage.setItem(AUTO_RELOAD_LOG_KEY, JSON.stringify(log));
+            return log.length < AUTO_RELOAD.maxReloads;
+        }
+
+        // RUN THIS BELOW TO CHECK TIMESTAMPS OF RELOAD
+        // JSON.parse(sessionStorage.getItem(AUTO_RELOAD_LOG_KEY) || '[]')
+        // .map(t => new Date(t).toLocaleString())
+
+        function recordReload() {
+            let log = [];
+            try { log = JSON.parse(sessionStorage.getItem(AUTO_RELOAD_LOG_KEY) || '[]'); } catch { }
+            log.push(Date.now());
+            sessionStorage.setItem(AUTO_RELOAD_LOG_KEY, JSON.stringify(log));
+        }
+
+        function showReloadBanner(secondsLeft) {
+            if (!autoReloadBanner) {
+                autoReloadBanner = document.createElement('div');
+                autoReloadBanner.style.cssText =
+                    'position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:1100;' +
+                    'background:var(--danger);color:#fff;padding:10px 16px;border-radius:8px;' +
+                    'box-shadow:0 4px 16px rgba(0,0,0,.35);font-size:.88rem;display:flex;gap:12px;align-items:center;';
+                autoReloadBanner.innerHTML =
+                    '<span id="ar-text"></span><button class="btn secondary" id="ar-cancel">Cancel</button>';
+                document.body.appendChild(autoReloadBanner);
+                autoReloadBanner.querySelector('#ar-cancel').addEventListener('click', () => {
+                    cancelAutoReload();
+                    autoReloadErrors = 0;
+                });
+            }
+            autoReloadBanner.querySelector('#ar-text').textContent =
+                `⚠️ Too many errors. Reloading in ${secondsLeft}s…`;
+        }
+
+        function cancelAutoReload() {
+            clearInterval(autoReloadTimer);
+            autoReloadPending = false;
+            if (autoReloadBanner) { autoReloadBanner.remove(); autoReloadBanner = null; }
+        }
+
+        function startAutoReload() {
+            if (typeof uploadQueue !== 'undefined' && uploadQueue.some(i => i.status === 'uploading')) return; // don't kill uploads
+            if (!reloadAllowedByGuard()) {
+                console.warn('Auto-reload skipped: reload limit reached.');
+                autoReloadErrors = 0;
+                return;
+            }
+            autoReloadPending = true;
+            let left = AUTO_RELOAD.countdownSeconds;
+            showReloadBanner(left);
+            autoReloadTimer = setInterval(() => {
+                left--;
+                if (left > 0) { showReloadBanner(left); return; }
+                clearInterval(autoReloadTimer);
+                doAutoReload();
+            }, 1000);
+        }
+
+        async function doAutoReload() {
+            if (AUTO_RELOAD.requireReachable) {
+                try {
+                    await fetch(window.location.href, { method: 'HEAD', cache: 'no-store' });
+                } catch {
+                    // server fully unreachable → reloading would show a browser error page
+                    cancelAutoReload();   // next error will restart the countdown
+                    return;
+                }
+            }
+            // keep unsaved text
+            try {
+                if (editor.value !== lastContent) sessionStorage.setItem(DRAFT_KEY, editor.value);
+            } catch { }
+            recordReload();
+            window.location.reload();
+        }
+
+        /* ======================================================
+           AUTO RELOAD ON REPEATED ERRORS  (configurable)
+           ====================================================== */
 
         /* ---- Dark/Light Mode ---- */
         const toggle = document.getElementById('mode-toggle');
@@ -1640,6 +1778,7 @@
             413: { text: "⚠️ File Too Large", color: "var(--warn)" },
             429: { text: "❌ Too Many Requests", color: "var(--danger)" },
             500: { text: "💥 Server Error", color: "darkred" },
+            507: { text: "💾 Server Storage Full", color: "var(--danger)" },
             0: { text: "❌ Network Error", color: "var(--danger)" }
         };
         let statusTimer = null;
@@ -1658,6 +1797,7 @@
             // Track system status based on API response
             const isSuccess = (typeof statusOrError === "number") && (statusOrError >= 200 && statusOrError < 300);
             updateSystemStatus(isSuccess);
+            trackAutoReload(statusOrError);
         }
 
         /* ======================================================
@@ -1772,7 +1912,21 @@
         showLoader();
         fetch(apiUrl)
             .then(r => { showStatus(r.status, "load"); return r.text(); })
-            .then(t => { editor.value = t; lastContent = t; highlightSync(t); })
+            // .then(t => { editor.value = t; lastContent = t; highlightSync(t); })
+            .then(t => {
+                const draft = sessionStorage.getItem(DRAFT_KEY);
+                if (draft !== null) {
+                    sessionStorage.removeItem(DRAFT_KEY);
+                    if (draft !== t) {                       // restore unsaved text and re-save it
+                        editor.value = draft; lastContent = t;
+                        highlightSync(draft);
+                        editor.dispatchEvent(new Event('input'));
+                        return;
+                    }
+                }
+                editor.value = t; lastContent = t; highlightSync(t);
+            })
+
             .catch(() => showStatus(0, "load"))
             .finally(hideLoader);
 
@@ -1990,7 +2144,9 @@
                     item.status = 'error';
                     const is413 = err.message === '413';
                     const is409 = err.message === '409';
-                    const msg = is413 ? '⚠️ Too Large' : is409 ? '🚫 Limit Reached' : '❌ Failed';
+                    const is503 = err.message === '503';
+                    const is507 = err.message === '507';
+                    const msg = is413 ? '⚠️ Too Large' : is409 ? '🚫 Limit Reached' : is503 ? '⚠️ Service Unavailable' : is507 ? '🗃⚠️ Server Storage Full Contact Admin' : '❌ Failed';
                     if (statusEl) statusEl.innerHTML = `<span class="error">${msg}</span>`;
                     showStatus(is413 ? 413 : is409 ? 409 : 0, 'upload');
                 }

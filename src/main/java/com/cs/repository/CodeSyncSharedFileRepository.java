@@ -32,4 +32,7 @@ public interface CodeSyncSharedFileRepository extends JpaRepository<CodeSyncShar
 	List<CodeSyncSharedFile> findByIsActiveTrueAndExpiresAtBefore(Timestamp now);
 
 	List<CodeSyncSharedFile> findByIsActiveFalseAndIsFileMovedFalse();
+
+	@Query("SELECT COALESCE(SUM(f.fileSize), 0) FROM CodeSyncSharedFile f WHERE f.isActive = true")
+	long sumActiveFileSizes();
 }
