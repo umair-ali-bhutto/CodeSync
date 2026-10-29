@@ -13,7 +13,7 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 - added auto reload page functionality on too many error
 - fixed footer links colors
-
+- fixed some minor issues
 
 ### Added 18-SEP-2026
 

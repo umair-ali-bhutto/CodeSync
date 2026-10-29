@@ -93,10 +93,12 @@ public class FileShareController {
 			return ResponseEntity.status(HttpStatus.CREATED).body(saved.getFileId());
 		} catch (IllegalArgumentException e) {
 			// File too large
-			return ResponseEntity.status(HttpStatus.CONTENT_TOO_LARGE).body(e.getMessage());
+			return ResponseEntity.status(HttpStatus.CONTENT_TOO_LARGE)
+		            .body("The uploaded file exceeds the maximum allowed size.");
 		} catch (InsufficientStorageException e) {
 			// NEW: not enough disk space to accept this upload
-			return ResponseEntity.status(HttpStatus.INSUFFICIENT_STORAGE).body(e.getMessage());
+			return ResponseEntity.status(HttpStatus.INSUFFICIENT_STORAGE)
+		            .body("Insufficient storage available to complete upload.");
 		} catch (CallNotPermittedException e) {
 			// NEW: circuit breaker is open — service temporarily unavailable
 			return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)

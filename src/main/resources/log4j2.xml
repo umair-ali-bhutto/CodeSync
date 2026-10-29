@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Configuration status="WARN">
 	<Properties>
-		<Property name="LOG_DIR">/mnt/8EFED7B1FED79037/UBUNTU-BACKUP/Desktop/ag-mw-logs/
+		<Property name="LOG_DIR">/opt/codesync/tomcat11/logs/
 		</Property>
-		<Property name="LOG_ARCHIVE_DIR">/mnt/8EFED7B1FED79037/UBUNTU-BACKUP/Desktop/ag-mw-logs/archive/
+		<Property name="LOG_ARCHIVE_DIR">/opt/codesync/tomcat11/logs/
 		</Property>
 		<Property name="LOG_FILE">CodeSync</Property>
 	</Properties>
@@ -12,7 +12,6 @@
 		<Console name="LogToConsole" target="SYSTEM_OUT">
 			<PatternLayout
 				pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n" />
-
 		</Console>
 
 		<RollingFile name="LogToFile"
