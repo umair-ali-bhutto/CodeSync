@@ -719,3 +719,928 @@ SELECT 'CODE_SYNC_SHARED_FILE (archive)',            COUNT(*) FROM CODE_SYNC_SHA
 | Archived/deleted count mismatch check (`IF ... SIGNAL`) | Catches silent partial failures and rolls back instead of deleting un-archived rows |
 | `ON COMPLETION PRESERVE` on the event | Without this, MySQL drops the event after it runs once |
 | Next Monday's date pre-filled (`2026-06-29`) | Ready to paste, no guessing needed |
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+FOR H2 DB ARCHIVING CLAUDE
+Yes, both are possible in H2, and I'd do both. They solve different problems:
+
+- **Backup (`BACKUP TO`)** gives you a timestamped, restorable zip of the whole DB.
+- **Archive** moves old audit rows into a separate H2 file, so the main DB stops growing. Archiving into the same file wouldn't shrink anything, so use a separate file.
+
+Your growth problem is almost certainly `CODE_SYNC_AUDIT`, because `REQUEST_BODY` and `RESPONSE_BODY` are CLOBs. Don't archive `CODE_SYNC` or `CODE_SYNC_SHARED_FILE` this way, since the app still needs those rows to serve shares and downloads.
+
+## 1. Enable scheduling
+
+Add `@EnableScheduling` to your main class or any `@Configuration` class.
+
+## 2. Properties
+
+```properties
+codesync.backup.dir=/opt/codesync/backup
+codesync.backup.cron=0 0 2 * * *
+codesync.backup.keep-days=30
+
+codesync.archive.dir=/opt/codesync/archive
+codesync.archive.cron=0 30 2 * * *
+codesync.archive.retention-days=7
+```
+
+## 3. The service
+
+```java
+package com.cs.service;
+
+import java.io.File;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.Statement;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Service;
+
+import com.cs.config.CodeSyncLogger;
+
+@Service
+public class DbMaintenanceService {
+
+	private static final int BATCH = 500;
+
+	private final JdbcTemplate jdbc;
+
+	@Value("${codesync.backup.dir}")
+	private String backupDir;
+	@Value("${codesync.backup.keep-days:30}")
+	private int keepDays;
+	@Value("${codesync.archive.dir}")
+	private String archiveDir;
+	@Value("${codesync.archive.retention-days:7}")
+	private int retentionDays;
+	@Value("${spring.datasource.username}")
+	private String dbUser;
+	@Value("${spring.datasource.password:}")
+	private String dbPass;
+
+	public DbMaintenanceService(JdbcTemplate jdbc) {
+		this.jdbc = jdbc;
+	}
+
+	/* ---------- FULL BACKUP (hot, DB stays online) ---------- */
+	@Scheduled(cron = "${codesync.backup.cron}")
+	public void backup() {
+		try {
+			new File(backupDir).mkdirs();
+			String ts = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
+			String file = backupDir + "/codesync_" + ts + ".zip";
+			jdbc.execute("BACKUP TO '" + file + "'");
+			CodeSyncLogger.logInfo("DB backup created: " + file);
+
+			// delete old backups
+			long cutoff = System.currentTimeMillis() - keepDays * 86_400_000L;
+			File[] old = new File(backupDir).listFiles((d, n) -> n.startsWith("codesync_") && n.endsWith(".zip"));
+			if (old != null)
+				for (File f : old)
+					if (f.lastModified() < cutoff)
+						f.delete();
+		} catch (Exception e) {
+			CodeSyncLogger.logError(getClass(), "Backup failed", e);
+		}
+	}
+
+	/* ---------- ARCHIVE OLD AUDIT ROWS TO A SEPARATE H2 FILE ---------- */
+	@Scheduled(cron = "${codesync.archive.cron}")
+	public void archiveAudit() {
+		Timestamp cutoff = Timestamp.valueOf(LocalDateTime.now().minusDays(retentionDays));
+		new File(archiveDir).mkdirs();
+		// one archive file per month
+		String url = "jdbc:h2:file:" + archiveDir + "/codesync_archive_" + LocalDate.now() + ";AUTO_SERVER=TRUE";
+
+		try (Connection arch = DriverManager.getConnection(url, dbUser, dbPass)) {
+			try (Statement st = arch.createStatement()) {
+				st.execute(ARCHIVE_DDL);
+				st.execute("CREATE INDEX IF NOT EXISTS IDX_ARCH_AUDIT_CREATED ON CODE_SYNC_AUDIT_ARCHIVE(CREATED_AT)");
+			}
+
+			int total = 0;
+			while (true) {
+				List<Map<String, Object>> rows = jdbc.queryForList(
+						"SELECT * FROM CODE_SYNC_AUDIT WHERE CREATED_AT < ? ORDER BY ID FETCH FIRST " + BATCH
+								+ " ROWS ONLY",
+						cutoff);
+				if (rows.isEmpty())
+					break;
+
+				List<String> cols = List.copyOf(rows.get(0).keySet());
+				String sql = "MERGE INTO CODE_SYNC_AUDIT_ARCHIVE (" + String.join(",", cols) + ") KEY(ID) VALUES ("
+						+ String.join(",", cols.stream().map(c -> "?").toList()) + ")";
+
+				arch.setAutoCommit(false);
+				try (var ps = arch.prepareStatement(sql)) {
+					long maxId = 0;
+					for (Map<String, Object> r : rows) {
+						for (int i = 0; i < cols.size(); i++)
+							ps.setObject(i + 1, r.get(cols.get(i)));
+						ps.addBatch();
+						maxId = Math.max(maxId, ((Number) r.get("ID")).longValue());
+					}
+					ps.executeBatch();
+					arch.commit(); // archive is safely written BEFORE we delete
+
+					jdbc.update("DELETE FROM CODE_SYNC_AUDIT WHERE ID <= ? AND CREATED_AT < ?", maxId, cutoff);
+					total += rows.size();
+				}
+			}
+			CodeSyncLogger.logInfo("Audit archive done, rows moved: " + total + " -> " + url);
+		} catch (Exception e) {
+			CodeSyncLogger.logError(getClass(), "Archive failed", e);
+		}
+	}
+
+	private static final String ARCHIVE_DDL = """
+			CREATE TABLE IF NOT EXISTS CODE_SYNC_AUDIT_ARCHIVE (
+			  ID BIGINT PRIMARY KEY,
+			  HTTP_METHOD VARCHAR(255), URI VARCHAR(255), QUERY_STRING VARCHAR(255),
+			  CLIENT_IP VARCHAR(255), STATUS_CODE INT, CONTENT_SIZE INT,
+			  REQUEST_BODY CLOB, RESPONSE_BODY CLOB, DURATION_MS BIGINT,
+			  CREATED_AT TIMESTAMP, FORWARDED_FOR VARCHAR(255), REAL_IP VARCHAR(255),
+			  USER_AGENT VARCHAR(255), BROWSER_INFO VARCHAR(255), LANGUAGE VARCHAR(255),
+			  REFERER VARCHAR(255), ORIGIN VARCHAR(255), HOST VARCHAR(255),
+			  SEC_FETCH_SITE_MODE_DEST VARCHAR(255), SEC_CH_UA_PLATFORM_MOBILE VARCHAR(255),
+			  UPLOADED_FILE_NAME VARCHAR(512), UPLOADED_FILE_SIZE BIGINT, ADDITIONAL_INFO CLOB
+			)""";
+}
+```
+
+**Why the archive is safe to re-run:**
+- It uses `MERGE ... KEY(ID)`, so if the app crashes after copying but before deleting, the next run simply overwrites the same rows instead of duplicating them.
+- The archive is committed before anything is deleted.
+- It works in 500-row batches, so memory stays small.
+
+If you later add columns to `CodeSyncAudit`, add them to `ARCHIVE_DDL` too. The copy picks up columns dynamically, so the insert will fail if the archive table lacks one.
+
+## 4. Opening a backup or archive later
+
+- **Archive file** (`codesync_archive_2026-10.mv.db`): in your H2 console use `jdbc:h2:file:/opt/codesync/archive/codesync_archive_2026-10;AUTO_SERVER=TRUE`, with the same username and an empty password. Leave off the `.mv.db` extension.
+- **Backup zip**: unzip it somewhere (e.g. `/tmp/restore/`) and open the `.mv.db` file inside the same way, again without the extension. To restore, stop the app and replace `/opt/codesync/db/codesync.mv.db` with it.
+
+## Things to know
+
+1. **The main file won't shrink right after deleting rows.** H2 reuses the freed space, so growth stops, but the file size stays. To actually shrink it, run `SHUTDOWN COMPACT` once in a maintenance window, or restore from a `SCRIPT` export.
+2. **`BACKUP TO` needs an admin user.** In H2 the first user created in the DB (`code_sync`) is normally admin, so it should work as is.
+3. **Version-proof alternative:** if you want backups that survive H2 upgrades, replace `BACKUP TO '...zip'` with `SCRIPT TO '/opt/codesync/backup/x.sql.zip' COMPRESSION ZIP`. It's slower and larger but produces plain SQL you can run anywhere.
+4. **Backup location:** keep `backupDir` on a different disk or machine if you can. A backup on the same disk won't help if the disk dies.
+5. **Per-day archives:** if you'd rather have one archive file per day, change `YearMonth.now()` to `LocalDate.now()`.
+
+I haven't run this against your setup. Try it first with a small `retention-days` on a copy of the DB, and trigger `archiveAudit()` manually to check the row counts before trusting the cron.
+
+Yes, two separate things, because they solve different problems.
+
+| | Backup zip | Archive file |
+|---|---|---|
+| **Purpose** | Disaster recovery: restore the app if the DB is lost or corrupted | Keep the main DB small by moving old logs out |
+| **Contents** | The entire database | Only `CODE_SYNC_AUDIT` rows older than 7 days |
+| **Main DB afterwards** | Unchanged, it only copies | Those rows are deleted from it |
+| **Frequency** | Daily snapshot, old zips deleted after 30 days | One file per month, kept as long as you want |
+
+## What the zip includes
+
+Everything in the database at that moment: all tables (`CODE_SYNC`, `CODE_SYNC_AUDIT`, `CODE_SYNC_SHARED_FILE`, `CODE_SYNC_BLOCKED_IPS`, `CODE_SYNC_CLIENTS`), indexes, sequences, and DB users. It is basically a compressed copy of `codesync.mv.db`.
+
+It does **not** include the actual uploaded files stored on disk (the paths in `STORED_PATH`). The DB only holds their metadata, so back up that folder separately if you need those.
+
+## What the archive includes
+
+Only old audit log rows (request details, request/response bodies, IPs, and so on). Nothing from the other tables.
+
+## How they interact
+
+Once a row is archived, it is deleted from the main DB, so **backups taken after that no longer contain it**. Old audit logs then exist only in the archive file, and in older zips taken before they were moved. That means:
+
+- To investigate old traffic, open the archive file.
+- To recover from a crash, restore the latest zip, which has the app data plus the last 7 days of audit logs.
+- Back up the archive folder too (copy it to another disk or machine), since it is the only copy of those old logs.
+
+## If you want just one
+
+- **Only archive:** the main file stops growing and old logs stay searchable, but there's no protection if the DB gets corrupted or the disk fails.
+- **Only backup:** you're protected against loss, but the main DB keeps growing, because the audit table is never trimmed.
+
+My recommendation is both, since the audit table is what grows and the other tables are what you can't afford to lose. If you'd rather keep it simpler, I can show a version that only trims audit rows into the archive and backs up the archive folder with a plain file copy.
+
+I've updated `DbMaintenanceScheduler.java` so it now archives `CODE_SYNC_SHARED_FILE` as well as `CODE_SYNC_AUDIT`. I haven't compiled or run it, so test it on a copy of your DB first.
+
+**Active shares are not archived.** Only rows the app no longer needs are moved: `UPLOADED_AT` older than the retention period **and** (`IS_ACTIVE = FALSE` **or** `EXPIRES_AT` already passed). If I archived active rows too, their share links and downloads would stop working, because the app looks them up in the main table.
+
+**What changed**
+- Both tables now go through one shared `archiveTable(...)` method, and they use the same archive file for that day.
+- The archive table for shared files has all 17 columns, including `IS_FILE_DELETED_DIRECTLY`. If you add columns to the entity later, add them to the DDL too.
+- `FILE_ID` is not unique in the archive table.
+- Rows are now deleted from the main table by their exact IDs after the archive commit, instead of `ID <= maxId`. This is safer if a row changes state while the job runs.
+- The audit and shared-file jobs are wrapped separately, so a failure in one doesn't stop the other.
+- I added `@Component` to the class. Your pasted version didn't have it, so the schedules would never have run.
+- The method is renamed to `archiveOldData()`, so use that name if you trigger it manually.
+
+**Add this property** (the default is 30 days if you leave it out):
+```properties
+codesync.archive.shared-file-retention-days=30
+```
+
+**Two things to check**
+1. Your code comment says "one file per month", but the URL uses `LocalDate.now()`, which gives one archive file per day. I kept the per-day naming. If you want monthly files, switch it to `YearMonth.now()` and add the import.
+2. Archiving only copies the database rows. The actual files at `STORED_PATH` stay on disk and are not touched. If your app deletes them when a share expires, the archive row will point to a file that no longer exists, which is fine for a record of what was shared. If you want the files kept, you'd need to copy them separately.
+
+package com.cs.scheduler;
+
+import java.io.File;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.Statement;
+import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+
+import com.cs.config.CodeSyncLogger;
+
+@Component
+public class DbMaintenanceScheduler {
+
+	private static final int BATCH = 500;
+
+	private final JdbcTemplate jdbc;
+
+	@Value("${codesync.backup.dir}")
+	private String backupDir;
+	@Value("${codesync.backup.keep-days:30}")
+	private int keepDays;
+	@Value("${codesync.archive.dir}")
+	private String archiveDir;
+	@Value("${codesync.archive.retention-days:7}")
+	private int auditRetentionDays;
+	@Value("${codesync.archive.shared-file-retention-days:30}")
+	private int sharedFileRetentionDays;
+	@Value("${spring.datasource.username}")
+	private String dbUser;
+	@Value("${spring.datasource.password:}")
+	private String dbPass;
+
+	public DbMaintenanceScheduler(JdbcTemplate jdbc) {
+		this.jdbc = jdbc;
+	}
+
+	/* ---------- FULL BACKUP (hot, DB stays online) ---------- */
+	@Scheduled(cron = "${codesync.backup.cron}")
+	public void backup() {
+		try {
+			new File(backupDir).mkdirs();
+			String ts = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
+			String file = backupDir + "/codesync_" + ts + ".zip";
+			jdbc.execute("BACKUP TO '" + file + "'");
+			CodeSyncLogger.logInfo("DB backup created: " + file);
+
+			long cutoff = System.currentTimeMillis() - keepDays * 86_400_000L;
+			File[] old = new File(backupDir).listFiles((d, n) -> n.startsWith("codesync_") && n.endsWith(".zip"));
+			if (old != null)
+				for (File f : old)
+					if (f.lastModified() < cutoff)
+						f.delete();
+		} catch (Exception e) {
+			CodeSyncLogger.logError(getClass(), "Backup failed", e);
+		}
+	}
+
+	/* ---------- ARCHIVE OLD ROWS (AUDIT + SHARED FILES) TO A SEPARATE H2 FILE ---------- */
+	@Scheduled(cron = "${codesync.archive.cron}")
+	public void archiveOldData() {
+		new File(archiveDir).mkdirs();
+		// one archive file per day (use YearMonth.now() for one per month)
+		String url = "jdbc:h2:file:" + archiveDir + "/codesync_archive_" + LocalDate.now() + ";AUTO_SERVER=TRUE";
+
+		try (Connection arch = DriverManager.getConnection(url, dbUser, dbPass)) {
+			try (Statement st = arch.createStatement()) {
+				st.execute(AUDIT_DDL);
+				st.execute("CREATE INDEX IF NOT EXISTS IDX_ARCH_AUDIT_CREATED ON CODE_SYNC_AUDIT_ARCHIVE(CREATED_AT)");
+				st.execute(SHARED_FILE_DDL);
+				st.execute("CREATE INDEX IF NOT EXISTS IDX_ARCH_SF_UPLOADED ON CODE_SYNC_SHARED_FILE_ARCHIVE(UPLOADED_AT)");
+				st.execute("CREATE INDEX IF NOT EXISTS IDX_ARCH_SF_SHARE_KEY ON CODE_SYNC_SHARED_FILE_ARCHIVE(SHARE_KEY)");
+			}
+
+			// each table in its own try so a failure in one doesn't block the other
+			try {
+				Timestamp auditCutoff = Timestamp.valueOf(LocalDateTime.now().minusDays(auditRetentionDays));
+				int n = archiveTable(arch, "CODE_SYNC_AUDIT", "CODE_SYNC_AUDIT_ARCHIVE", "CREATED_AT < ?",
+						auditCutoff);
+				CodeSyncLogger.logInfo("Audit archive done, rows moved: " + n + " -> " + url);
+			} catch (Exception e) {
+				CodeSyncLogger.logError(getClass(), "Audit archive failed", e);
+			}
+
+			try {
+				Timestamp sfCutoff = Timestamp.valueOf(LocalDateTime.now().minusDays(sharedFileRetentionDays));
+				Timestamp now = new Timestamp(System.currentTimeMillis());
+				// ONLY rows the app no longer needs: inactive/deleted or expired, AND old enough
+				int n = archiveTable(arch, "CODE_SYNC_SHARED_FILE", "CODE_SYNC_SHARED_FILE_ARCHIVE",
+						"UPLOADED_AT < ? AND (IS_ACTIVE = FALSE OR (EXPIRES_AT IS NOT NULL AND EXPIRES_AT < ?))",
+						sfCutoff, now);
+				CodeSyncLogger.logInfo("Shared file archive done, rows moved: " + n + " -> " + url);
+			} catch (Exception e) {
+				CodeSyncLogger.logError(getClass(), "Shared file archive failed", e);
+			}
+		} catch (Exception e) {
+			CodeSyncLogger.logError(getClass(), "Archive failed", e);
+		}
+	}
+
+	/**
+	 * Copies matching rows to the archive DB in batches, commits the archive, and
+	 * only then deletes exactly those IDs from the main DB.
+	 */
+	private int archiveTable(Connection arch, String table, String archiveTable, String where, Object... params)
+			throws Exception {
+		int total = 0;
+		arch.setAutoCommit(false);
+
+		while (true) {
+			List<Map<String, Object>> rows = jdbc.queryForList(
+					"SELECT * FROM " + table + " WHERE " + where + " ORDER BY ID FETCH FIRST " + BATCH + " ROWS ONLY",
+					params);
+			if (rows.isEmpty())
+				break;
+
+			List<String> cols = List.copyOf(rows.get(0).keySet());
+			String sql = "MERGE INTO " + archiveTable + " (" + String.join(",", cols) + ") KEY(ID) VALUES ("
+					+ String.join(",", cols.stream().map(c -> "?").toList()) + ")";
+
+			List<Object[]> ids = new ArrayList<>();
+			try (var ps = arch.prepareStatement(sql)) {
+				for (Map<String, Object> r : rows) {
+					for (int i = 0; i < cols.size(); i++)
+						ps.setObject(i + 1, r.get(cols.get(i)));
+					ps.addBatch();
+					ids.add(new Object[] { r.get("ID") });
+				}
+				ps.executeBatch();
+				arch.commit(); // archive is safely written BEFORE we delete
+			} catch (Exception e) {
+				arch.rollback();
+				throw e;
+			}
+
+			jdbc.batchUpdate("DELETE FROM " + table + " WHERE ID = ?", ids);
+			total += rows.size();
+		}
+		return total;
+	}
+
+	private static final String AUDIT_DDL = """
+			CREATE TABLE IF NOT EXISTS CODE_SYNC_AUDIT_ARCHIVE (
+			  ID BIGINT PRIMARY KEY,
+			  HTTP_METHOD VARCHAR(255), URI VARCHAR(255), QUERY_STRING VARCHAR(255),
+			  CLIENT_IP VARCHAR(255), STATUS_CODE INT, CONTENT_SIZE INT,
+			  REQUEST_BODY CLOB, RESPONSE_BODY CLOB, DURATION_MS BIGINT,
+			  CREATED_AT TIMESTAMP, FORWARDED_FOR VARCHAR(255), REAL_IP VARCHAR(255),
+			  USER_AGENT VARCHAR(255), BROWSER_INFO VARCHAR(255), LANGUAGE VARCHAR(255),
+			  REFERER VARCHAR(255), ORIGIN VARCHAR(255), HOST VARCHAR(255),
+			  SEC_FETCH_SITE_MODE_DEST VARCHAR(255), SEC_CH_UA_PLATFORM_MOBILE VARCHAR(255),
+			  UPLOADED_FILE_NAME VARCHAR(512), UPLOADED_FILE_SIZE BIGINT, ADDITIONAL_INFO CLOB
+			)""";
+
+	// FILE_ID is NOT unique here (the source table has the unique constraint)
+	private static final String SHARED_FILE_DDL = """
+			CREATE TABLE IF NOT EXISTS CODE_SYNC_SHARED_FILE_ARCHIVE (
+			  ID BIGINT PRIMARY KEY,
+			  SHARE_KEY VARCHAR(100), FILE_ID VARCHAR(64), ORIGINAL_NAME VARCHAR(512),
+			  CONTENT_TYPE VARCHAR(128), FILE_SIZE BIGINT, STORED_PATH VARCHAR(1024),
+			  UPLOADED_AT TIMESTAMP, DOWNLOAD_COUNT BIGINT, IS_ACTIVE BOOLEAN,
+			  DELETED_AT TIMESTAMP, LAST_DOWNLOADED_AT TIMESTAMP,
+			  UPLOADER_IP VARCHAR(64), UPLOADER_NAME VARCHAR(128), EXPIRES_AT TIMESTAMP,
+			  IS_FILE_MOVED BOOLEAN, IS_FILE_DELETED_DIRECTLY BOOLEAN
+			)""";
+}
+
+
+I've updated `DbMaintenanceScheduler.java` with stronger logging and a more compressed backup option. I haven't compiled or run it, so test it on a copy of your DB first.
+
+## Stronger logs
+
+- Every line is tagged `[BACKUP]` or `[ARCHIVE]` plus a short run ID, so you can grep one run end to end.
+- **Backup** logs the mode, the main DB size, the backup size and its ratio to the main DB, the duration, and every old backup it deletes.
+- **Archive** logs, per table, the number of eligible rows, how many were copied, how many were deleted, and how many are still eligible afterwards. It also logs the archive file size and the main DB size before and after.
+- It logs a `WARN` if copied and deleted counts differ, or if eligible rows remain after the run. It also logs the first and last ID of any batch that fails.
+- The backup is checked after it is made (the file must exist and not be empty). A half-written compressed file is deleted so it can't be mistaken for a good backup.
+- A lock stops backup and archive from running at the same time. The cron properties now default to `-`, which tells Spring to disable that job instead of failing at startup when the property is missing.
+
+I don't know which methods your `CodeSyncLogger` has, so I only used `logInfo`, `logDebug` and `logError`. Warnings are `logInfo` lines with a `WARN` prefix. If you have a real `logWarn`, change the `warn()` helper at the bottom of the file.
+
+## More compressed backups
+
+Set `codesync.backup.mode` to one of these:
+
+| Mode | Output | Size | Notes |
+|---|---|---|---|
+| `zip` (default) | `.zip` of the `.mv.db` file | largest | Fastest, and it restores by simply copying the file. |
+| `script-gz` | `.sql.gz` | smaller | Plain SQL, no extra tools needed. |
+| `script-xz` | `.sql.xz` | much smaller | Best ratio, slower, needs `xz`. |
+| `script-zstd` | `.sql.zst` | close to xz | Much faster than xz, needs `zstd`. |
+
+For your audit data (lots of repetitive request and response bodies), `script-xz` or `script-zstd` should be noticeably smaller than the zip.
+
+```properties
+codesync.backup.mode=script-zstd
+codesync.backup.compress-timeout-minutes=60
+codesync.db.file=/opt/codesync/db/codesync.mv.db
+```
+
+Install the tools on Linux with `sudo apt install xz-utils zstd`. On RHEL-based systems, use `dnf install xz zstd`.
+
+## Things to know
+
+1. **Memory:** `xz -9` can use about 700 MB of RAM and `zstd -19 --long=27` about 128 MB. On a small VM, prefer zstd, or lower xz to `-6` in the code.
+2. **Restore:** the script modes are slower to restore than a zip, because the SQL is replayed. First decompress with `xz -d file.sql.xz` or `zstd -d file.sql.zst`. Then load it into a new empty DB with `java -cp h2.jar org.h2.tools.RunScript -url jdbc:h2:file:/tmp/restore/codesync -user code_sync -script file.sql`. Use the same H2 jar version your app uses.
+3. **Locking:** `SCRIPT` reads every table, so it can hold locks for a short time on a big DB. Keep it at 2 AM. The zip mode (`BACKUP TO`) is the safest for a hot backup.
+4. **Existing zips:** re-compressing a zip you already have gains almost nothing, because it is already deflated. Extract it first, for example `unzip -p codesync_X.zip | xz -9 > codesync_X.mv.db.xz`. This works because the zip holds a single file.
+5. **Archive files:** the archive `.mv.db` files can be compressed the same way, but only once they're no longer written to. For example, run `xz -9` on the previous days' files. To open one again, decompress it first.
+
+
+package com.cs.scheduler;
+
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.Statement;
+import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+
+import com.cs.config.CodeSyncLogger;
+
+@Component
+public class DbMaintenanceScheduler {
+
+	private static final int BATCH = 500;
+
+	/** Backup and archive never run at the same time (also protects manual calls). */
+	private final ReentrantLock lock = new ReentrantLock();
+
+	private final JdbcTemplate jdbc;
+
+	@Value("${codesync.backup.dir}")
+	private String backupDir;
+
+	@Value("${codesync.backup.keep-days:30}")
+	private int keepDays;
+
+	/** zip | script-gz | script-xz | script-zstd */
+	@Value("${codesync.backup.mode:zip}")
+	private String backupMode;
+
+	@Value("${codesync.backup.compress-timeout-minutes:60}")
+	private int compressTimeoutMinutes;
+
+	@Value("${codesync.db.file:/opt/codesync/db/codesync.mv.db}")
+	private String dbFilePath;
+
+	@Value("${codesync.archive.dir}")
+	private String archiveDir;
+
+	@Value("${codesync.archive.retention-days:7}")
+	private int auditRetentionDays;
+
+	@Value("${codesync.archive.shared-file-retention-days:30}")
+	private int sharedFileRetentionDays;
+
+	@Value("${spring.datasource.username}")
+	private String dbUser;
+
+	@Value("${spring.datasource.password:}")
+	private String dbPass;
+
+	@Value("${codesync.backup.cron.enabled:false}")
+	private Boolean backupEnabled;
+
+	@Value("${codesync.archive.cron.enabled:false}")
+	private Boolean archiveEnabled;
+
+	public DbMaintenanceScheduler(JdbcTemplate jdbc) {
+		this.jdbc = jdbc;
+	}
+
+	/* ====================================================================== */
+	/* BACKUP */
+	/* ====================================================================== */
+
+	@Scheduled(cron = "${codesync.backup.cron:-}")
+	public void backup() {
+		if (!backupEnabled) {
+			CodeSyncLogger.logDebug("[BACKUP] skipped: codesync.backup.cron.enabled=false");
+			return;
+		}
+		if (!lock.tryLock()) {
+			CodeSyncLogger.logInfo("[BACKUP] WARN skipped: another maintenance job is still running");
+			return;
+		}
+
+		String runId = newRunId();
+		long t0 = System.currentTimeMillis();
+		try {
+			Files.createDirectories(Path.of(backupDir));
+			String ts = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
+			String base = backupDir + "/codesync_" + ts;
+
+			long dbSize = fileSize(Path.of(dbFilePath));
+			info("BACKUP", runId, "START mode=" + backupMode + " target=" + base + ".* mainDbSize=" + human(dbSize)
+					+ " (" + dbFilePath + ")");
+
+			Path out = createBackup(base, runId);
+
+			// verify
+			if (!Files.exists(out) || Files.size(out) == 0) {
+				throw new IllegalStateException("Backup file missing or empty: " + out);
+			}
+			long outSize = Files.size(out);
+			String ratio = dbSize > 0 ? String.format("%.1f%%", outSize * 100.0 / dbSize) : "n/a";
+			info("BACKUP", runId, "OK file=" + out + " size=" + human(outSize) + " ratioVsMainDb=" + ratio
+					+ " durationMs=" + (System.currentTimeMillis() - t0));
+
+			deleteOldBackups(runId);
+
+			info("BACKUP", runId, "DONE totalDurationMs=" + (System.currentTimeMillis() - t0));
+		} catch (Exception e) {
+			error("BACKUP", runId, "FAILED after " + (System.currentTimeMillis() - t0) + "ms", e);
+		} finally {
+			lock.unlock();
+		}
+	}
+
+	private Path createBackup(String base, String runId) throws Exception {
+		switch (backupMode.toLowerCase()) {
+		case "zip": {
+			Path p = Path.of(base + ".zip");
+			jdbc.execute("BACKUP TO '" + p + "'");
+			return p;
+		}
+		case "script-gz": {
+			Path p = Path.of(base + ".sql.gz");
+			jdbc.execute("SCRIPT TO '" + p + "' COMPRESSION GZIP");
+			return p;
+		}
+		case "script-xz":
+			return scriptThenCompress(base, runId, ".xz", List.of("xz", "-9", "-f"));
+		case "script-zstd":
+			return scriptThenCompress(base, runId, ".zst", List.of("zstd", "-19", "--long=27", "--rm", "-f", "-q"));
+		default:
+			throw new IllegalArgumentException(
+					"Unknown codesync.backup.mode=" + backupMode + " (use zip | script-gz | script-xz | script-zstd)");
+		}
+	}
+
+	/** Dumps the DB to plain SQL, then compresses it with an external tool. */
+	private Path scriptThenCompress(String base, String runId, String suffix, List<String> baseCmd) throws Exception {
+		Path sql = Path.of(base + ".sql");
+		Path compressed = Path.of(base + ".sql" + suffix);
+		Path toolLog = Path.of(base + ".compress.log");
+		try {
+			long t = System.currentTimeMillis();
+			jdbc.execute("SCRIPT TO '" + sql + "'");
+			long rawSize = Files.size(sql);
+			info("BACKUP", runId, "SCRIPT dump done size=" + human(rawSize) + " durationMs="
+					+ (System.currentTimeMillis() - t) + " | compressing with " + baseCmd.get(0) + "...");
+
+			List<String> cmd = new ArrayList<>(baseCmd);
+			cmd.add(sql.toString());
+			t = System.currentTimeMillis();
+			Process p = new ProcessBuilder(cmd).redirectErrorStream(true).redirectOutput(toolLog.toFile()).start();
+
+			if (!p.waitFor(compressTimeoutMinutes, TimeUnit.MINUTES)) {
+				p.destroyForcibly();
+				throw new IllegalStateException(
+						baseCmd.get(0) + " timed out after " + compressTimeoutMinutes + " minutes");
+			}
+			if (p.exitValue() != 0) {
+				String msg = Files.exists(toolLog) ? Files.readString(toolLog) : "";
+				throw new IllegalStateException(baseCmd.get(0) + " exit code " + p.exitValue() + ": " + msg);
+			}
+
+			long cSize = Files.size(compressed);
+			info("BACKUP", runId,
+					"COMPRESS done tool=" + baseCmd.get(0) + " " + human(rawSize) + " -> " + human(cSize) + " ("
+							+ String.format("%.1f%%", cSize * 100.0 / Math.max(rawSize, 1)) + " of raw SQL) durationMs="
+							+ (System.currentTimeMillis() - t));
+			return compressed;
+		} catch (Exception e) {
+			// never leave half-written files that look like valid backups
+			Files.deleteIfExists(compressed);
+			throw e;
+		} finally {
+			Files.deleteIfExists(sql);
+			Files.deleteIfExists(toolLog);
+		}
+	}
+
+	private void deleteOldBackups(String runId) {
+		long cutoff = System.currentTimeMillis() - keepDays * 86_400_000L;
+		File[] files = new File(backupDir).listFiles((d, n) -> n.startsWith("codesync_"));
+		int deleted = 0, kept = 0;
+		long freed = 0;
+		if (files != null) {
+			for (File f : files) {
+				if (f.lastModified() < cutoff) {
+					long s = f.length();
+					if (f.delete()) {
+						deleted++;
+						freed += s;
+						info("BACKUP", runId, "RETENTION deleted " + f.getName() + " (" + human(s) + ")");
+					} else {
+						warn("BACKUP", runId, "RETENTION could not delete " + f.getAbsolutePath());
+					}
+				} else {
+					kept++;
+				}
+			}
+		}
+		info("BACKUP", runId, "RETENTION keepDays=" + keepDays + " deleted=" + deleted + " freed=" + human(freed)
+				+ " kept=" + kept);
+	}
+
+	/* ====================================================================== */
+	/* ARCHIVE */
+	/* ====================================================================== */
+
+	@Scheduled(cron = "${codesync.archive.cron:-}")
+	public void archiveOldData() {
+		if (!archiveEnabled) {
+			CodeSyncLogger.logDebug("[ARCHIVE] skipped: codesync.archive.cron.enabled=false");
+			return;
+		}
+		if (!lock.tryLock()) {
+			CodeSyncLogger.logInfo("[ARCHIVE] WARN skipped: another maintenance job is still running");
+			return;
+		}
+
+		String runId = newRunId();
+		long t0 = System.currentTimeMillis();
+		Path archiveFile = Path.of(archiveDir, "codesync_archive_" + LocalDate.now() + ".mv.db");
+		// one archive file per day (use YearMonth.now() for one per month)
+		String url = "jdbc:h2:file:" + archiveDir + "/codesync_archive_" + LocalDate.now() + ";AUTO_SERVER=TRUE";
+
+		Result audit = null, shared = null;
+		try {
+			Files.createDirectories(Path.of(archiveDir));
+			info("ARCHIVE", runId, "START auditRetentionDays=" + auditRetentionDays + " sharedFileRetentionDays="
+					+ sharedFileRetentionDays + " mainDbSize=" + human(fileSize(Path.of(dbFilePath))) + " target="
+					+ url);
+
+			try (Connection arch = DriverManager.getConnection(url, dbUser, dbPass)) {
+				try (Statement st = arch.createStatement()) {
+					st.execute(AUDIT_DDL);
+					st.execute(
+							"CREATE INDEX IF NOT EXISTS IDX_ARCH_AUDIT_CREATED ON CODE_SYNC_AUDIT_ARCHIVE(CREATED_AT)");
+					st.execute(SHARED_FILE_DDL);
+					st.execute(
+							"CREATE INDEX IF NOT EXISTS IDX_ARCH_SF_UPLOADED ON CODE_SYNC_SHARED_FILE_ARCHIVE(UPLOADED_AT)");
+					st.execute(
+							"CREATE INDEX IF NOT EXISTS IDX_ARCH_SF_SHARE_KEY ON CODE_SYNC_SHARED_FILE_ARCHIVE(SHARE_KEY)");
+				}
+
+				// each table in its own try so a failure in one doesn't block the other
+				try {
+					Timestamp auditCutoff = Timestamp.valueOf(LocalDateTime.now().minusDays(auditRetentionDays));
+					audit = archiveTable(runId, arch, "CODE_SYNC_AUDIT", "CODE_SYNC_AUDIT_ARCHIVE", "CREATED_AT < ?",
+							auditCutoff);
+				} catch (Exception e) {
+					error("ARCHIVE", runId, "CODE_SYNC_AUDIT FAILED (rows already committed to archive stay safe)", e);
+				}
+
+				try {
+					Timestamp sfCutoff = Timestamp.valueOf(LocalDateTime.now().minusDays(sharedFileRetentionDays));
+					Timestamp now = new Timestamp(System.currentTimeMillis());
+					// ONLY rows the app no longer needs: inactive/deleted or expired, AND old
+					// enough
+					shared = archiveTable(runId, arch, "CODE_SYNC_SHARED_FILE", "CODE_SYNC_SHARED_FILE_ARCHIVE",
+							"UPLOADED_AT < ? AND (IS_ACTIVE = FALSE OR (EXPIRES_AT IS NOT NULL AND EXPIRES_AT < ?))",
+							sfCutoff, now);
+				} catch (Exception e) {
+					error("ARCHIVE", runId, "CODE_SYNC_SHARED_FILE FAILED (rows already committed stay safe)", e);
+				}
+			}
+
+			info("ARCHIVE", runId,
+					"DONE audit=" + (audit == null ? "FAILED" : audit) + " sharedFile="
+							+ (shared == null ? "FAILED" : shared) + " archiveFile=" + archiveFile + " archiveSize="
+							+ human(fileSize(archiveFile)) + " mainDbSizeNow=" + human(fileSize(Path.of(dbFilePath)))
+							+ " totalDurationMs=" + (System.currentTimeMillis() - t0));
+			info("ARCHIVE", runId,
+					"NOTE main DB file does not shrink by itself; freed space is reused. Run SHUTDOWN COMPACT in a maintenance window to shrink it.");
+		} catch (Exception e) {
+			error("ARCHIVE", runId, "FAILED after " + (System.currentTimeMillis() - t0) + "ms", e);
+		} finally {
+			lock.unlock();
+		}
+	}
+
+	private record Result(long eligible, long copied, long deleted, long remaining, long durationMs) {
+		@Override
+		public String toString() {
+			return "{eligible=" + eligible + ", copied=" + copied + ", deleted=" + deleted + ", remaining=" + remaining
+					+ ", ms=" + durationMs + "}";
+		}
+	}
+
+	/**
+	 * Copies matching rows to the archive DB in batches, commits the archive, and
+	 * only then deletes exactly those IDs from the main DB.
+	 */
+	private Result archiveTable(String runId, Connection arch, String table, String archiveTable, String where,
+			Object... params) throws Exception {
+		long t0 = System.currentTimeMillis();
+		long copied = 0, deleted = 0;
+		int batchNo = 0;
+
+		Long eligible = jdbc.queryForObject("SELECT COUNT(*) FROM " + table + " WHERE " + where, Long.class, params);
+		eligible = eligible == null ? 0 : eligible;
+		info("ARCHIVE", runId, table + " eligible rows=" + eligible);
+
+		arch.setAutoCommit(false);
+		while (true) {
+			List<Map<String, Object>> rows = jdbc.queryForList(
+					"SELECT * FROM " + table + " WHERE " + where + " ORDER BY ID FETCH FIRST " + BATCH + " ROWS ONLY",
+					params);
+			if (rows.isEmpty())
+				break;
+			batchNo++;
+
+			List<String> cols = List.copyOf(rows.get(0).keySet());
+			String sql = "MERGE INTO " + archiveTable + " (" + String.join(",", cols) + ") KEY(ID) VALUES ("
+					+ String.join(",", cols.stream().map(c -> "?").toList()) + ")";
+
+			List<Object[]> ids = new ArrayList<>();
+			try (var ps = arch.prepareStatement(sql)) {
+				for (Map<String, Object> r : rows) {
+					for (int i = 0; i < cols.size(); i++)
+						ps.setObject(i + 1, r.get(cols.get(i)));
+					ps.addBatch();
+					ids.add(new Object[] { r.get("ID") });
+				}
+				ps.executeBatch();
+				arch.commit(); // archive is safely written BEFORE we delete
+			} catch (Exception e) {
+				arch.rollback();
+				error("ARCHIVE", runId, table + " batch #" + batchNo + " copy failed, rolled back archive batch. "
+						+ "firstId=" + rows.get(0).get("ID") + " lastId=" + rows.get(rows.size() - 1).get("ID"), e);
+				throw e;
+			}
+			copied += rows.size();
+
+			int[] res = jdbc.batchUpdate("DELETE FROM " + table + " WHERE ID = ?", ids);
+			long batchDeleted = 0;
+			for (int r : res)
+				batchDeleted += (r > 0) ? r : (r == java.sql.Statement.SUCCESS_NO_INFO ? 1 : 0);
+			deleted += batchDeleted;
+
+			if (batchDeleted != rows.size()) {
+				warn("ARCHIVE", runId, table + " batch #" + batchNo + " copied=" + rows.size() + " but deleted="
+						+ batchDeleted + " (rows may have been removed by the app meanwhile)");
+			}
+			CodeSyncLogger.logDebug("[ARCHIVE][" + runId + "] " + table + " batch #" + batchNo + " copied="
+					+ rows.size() + " deleted=" + batchDeleted + " totalCopied=" + copied);
+		}
+
+		Long remaining = jdbc.queryForObject("SELECT COUNT(*) FROM " + table + " WHERE " + where, Long.class, params);
+		remaining = remaining == null ? 0 : remaining;
+
+		Result result = new Result(eligible, copied, deleted, remaining, System.currentTimeMillis() - t0);
+		if (remaining > 0) {
+			warn("ARCHIVE", runId, table + " still has " + remaining
+					+ " eligible rows after run (new rows may have qualified meanwhile)");
+		}
+		if (copied != deleted) {
+			warn("ARCHIVE", runId, table + " MISMATCH copied=" + copied + " deleted=" + deleted
+					+ " -> check manually; copied rows are safe in the archive (MERGE is idempotent, next run fixes it)");
+		}
+		info("ARCHIVE", runId, table + " finished " + result);
+		return result;
+	}
+
+	/* ====================================================================== */
+	/* HELPERS */
+	/* ====================================================================== */
+
+	private static String newRunId() {
+		return UUID.randomUUID().toString().substring(0, 8);
+	}
+
+	private static long fileSize(Path p) {
+		try {
+			return Files.exists(p) ? Files.size(p) : 0;
+		} catch (Exception e) {
+			return 0;
+		}
+	}
+
+	private static String human(long bytes) {
+		if (bytes < 1024)
+			return bytes + " B";
+		double v = bytes;
+		String[] u = { "KB", "MB", "GB", "TB" };
+		int i = -1;
+		do {
+			v /= 1024;
+			i++;
+		} while (v >= 1024 && i < u.length - 1);
+		return String.format("%.2f %s", v, u[i]);
+	}
+
+	private void info(String tag, String runId, String msg) {
+		CodeSyncLogger.logInfo("[" + tag + "][" + runId + "] " + msg);
+	}
+
+	private void warn(String tag, String runId, String msg) {
+		CodeSyncLogger.logInfo("[" + tag + "][" + runId + "] WARN " + msg);
+	}
+
+	private void error(String tag, String runId, String msg, Exception e) {
+		CodeSyncLogger.logError(getClass(), "[" + tag + "][" + runId + "] " + msg, e);
+	}
+
+	private static final String AUDIT_DDL = """
+			CREATE TABLE IF NOT EXISTS CODE_SYNC_AUDIT_ARCHIVE (
+			  ID BIGINT PRIMARY KEY,
+			  HTTP_METHOD VARCHAR(255), URI VARCHAR(255), QUERY_STRING VARCHAR(255),
+			  CLIENT_IP VARCHAR(255), STATUS_CODE INT, CONTENT_SIZE INT,
+			  REQUEST_BODY CLOB, RESPONSE_BODY CLOB, DURATION_MS BIGINT,
+			  CREATED_AT TIMESTAMP, FORWARDED_FOR VARCHAR(255), REAL_IP VARCHAR(255),
+			  USER_AGENT VARCHAR(255), BROWSER_INFO VARCHAR(255), LANGUAGE VARCHAR(255),
+			  REFERER VARCHAR(255), ORIGIN VARCHAR(255), HOST VARCHAR(255),
+			  SEC_FETCH_SITE_MODE_DEST VARCHAR(255), SEC_CH_UA_PLATFORM_MOBILE VARCHAR(255),
+			  UPLOADED_FILE_NAME VARCHAR(512), UPLOADED_FILE_SIZE BIGINT, ADDITIONAL_INFO CLOB
+			)""";
+
+	// FILE_ID is NOT unique here (the source table has the unique constraint)
+	private static final String SHARED_FILE_DDL = """
+			CREATE TABLE IF NOT EXISTS CODE_SYNC_SHARED_FILE_ARCHIVE (
+			  ID BIGINT PRIMARY KEY,
+			  SHARE_KEY VARCHAR(100), FILE_ID VARCHAR(64), ORIGINAL_NAME VARCHAR(512),
+			  CONTENT_TYPE VARCHAR(128), FILE_SIZE BIGINT, STORED_PATH VARCHAR(1024),
+			  UPLOADED_AT TIMESTAMP, DOWNLOAD_COUNT BIGINT, IS_ACTIVE BOOLEAN,
+			  DELETED_AT TIMESTAMP, LAST_DOWNLOADED_AT TIMESTAMP,
+			  UPLOADER_IP VARCHAR(64), UPLOADER_NAME VARCHAR(128), EXPIRES_AT TIMESTAMP,
+			  IS_FILE_MOVED BOOLEAN, IS_FILE_DELETED_DIRECTLY BOOLEAN
+			)""";
+}

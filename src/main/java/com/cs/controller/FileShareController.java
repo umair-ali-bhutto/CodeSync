@@ -30,6 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.cs.config.CodeSyncLogger;
+import com.cs.dto.DownloaderDTO;
 import com.cs.dto.SharedFileDTO;
 import com.cs.entity.CodeSyncSharedFile;
 import com.cs.exception.InsufficientStorageException;
@@ -38,7 +39,6 @@ import com.cs.service.CodeSyncSharedFileService;
 import com.cs.util.CodeSyncUtil;
 
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
-import io.swagger.v3.oas.annotations.Operation;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -62,7 +62,6 @@ public class FileShareController {
 	 * Upload a file. Returns 201 on success, 413 if file is too large, 409 if file
 	 * limit reached.
 	 */
-	@Operation(summary = "Upload file to share")
 	@PostMapping(value = "/{key}/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	public ResponseEntity<String> upload(@PathVariable String key, @RequestParam("file") MultipartFile file,
 			HttpServletRequest request) {
@@ -94,11 +93,11 @@ public class FileShareController {
 		} catch (IllegalArgumentException e) {
 			// File too large
 			return ResponseEntity.status(HttpStatus.CONTENT_TOO_LARGE)
-		            .body("The uploaded file exceeds the maximum allowed size.");
+					.body("The uploaded file exceeds the maximum allowed size.");
 		} catch (InsufficientStorageException e) {
 			// NEW: not enough disk space to accept this upload
 			return ResponseEntity.status(HttpStatus.INSUFFICIENT_STORAGE)
-		            .body("Insufficient storage available to complete upload.");
+					.body("Insufficient storage available to complete upload.");
 		} catch (CallNotPermittedException e) {
 			// NEW: circuit breaker is open — service temporarily unavailable
 			return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
@@ -131,7 +130,8 @@ public class FileShareController {
 	 * Download a file by its fileId. Streams the file with appropriate headers.
 	 */
 	@GetMapping("/{key}/download/{fileId}")
-	public ResponseEntity<Resource> download(@PathVariable String key, @PathVariable String fileId) {
+	public ResponseEntity<Resource> download(@PathVariable String key, @PathVariable String fileId,
+			HttpServletRequest request) {
 
 		CodeSyncUtil.validateKey(key);
 
@@ -154,7 +154,8 @@ public class FileShareController {
 				return ResponseEntity.status(HttpStatus.GONE).body(null);
 			}
 
-			fileService.incrementDownload(f.getFileId());
+			String ip = CodeSyncUtil.getClientIp(request);
+			fileService.recordDownload(f.getFileId(), ip, CodeSyncClientCache.getNameByIp(ip));
 
 			Resource resource = new FileSystemResource(Paths.get(f.getStoredPath()));
 			if (!resource.exists()) {
@@ -183,7 +184,8 @@ public class FileShareController {
 	 * Delete a file by its fileId.
 	 */
 	@DeleteMapping("/{key}/delete/{fileId}")
-	public ResponseEntity<String> delete(@PathVariable String key, @PathVariable String fileId) {
+	public ResponseEntity<String> delete(@PathVariable String key, @PathVariable String fileId,
+			HttpServletRequest request) {
 
 		CodeSyncUtil.validateKey(key);
 
@@ -199,7 +201,8 @@ public class FileShareController {
 						.body("File is no longer available (already deleted or moved).");
 			}
 
-			fileService.delete(fileId);
+			String ip = CodeSyncUtil.getClientIp(request);
+			fileService.delete(fileId, ip, CodeSyncClientCache.getNameByIp(ip));
 			return ResponseEntity.ok("Deleted");
 		} catch (IllegalArgumentException e) {
 			return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Not found");
@@ -213,10 +216,11 @@ public class FileShareController {
 	 * DELETE ALL active files for a share key
 	 */
 	@DeleteMapping("/{key}/delete-all")
-	public ResponseEntity<String> deleteAll(@PathVariable String key) {
+	public ResponseEntity<String> deleteAll(@PathVariable String key, HttpServletRequest request) {
 		CodeSyncUtil.validateKey(key);
 		try {
-			int count = fileService.deleteAll(key);
+			String ip = CodeSyncUtil.getClientIp(request);
+			int count = fileService.deleteAll(key, ip, CodeSyncClientCache.getNameByIp(ip));
 			return ResponseEntity.ok("Deleted " + count + " files.");
 		} catch (IOException e) {
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Delete all failed.");
@@ -227,7 +231,8 @@ public class FileShareController {
 	 * Download all active files for a share key as a single ZIP archive.
 	 */
 	@GetMapping("/{key}/download-all")
-	public void downloadAll(@PathVariable String key, HttpServletResponse response) throws IOException {
+	public void downloadAll(@PathVariable String key, HttpServletRequest request, HttpServletResponse response)
+			throws IOException {
 		CodeSyncUtil.validateKey(key);
 
 		List<CodeSyncSharedFile> files = fileService.findActiveFiles(key);
@@ -259,6 +264,9 @@ public class FileShareController {
 		// Actual compressed ZIP size isn't known until streaming completes.
 		long approxTotalSize = validFiles.stream().mapToLong(CodeSyncSharedFile::getFileSize).sum();
 		response.setHeader("X-Total-Uncompressed-Size", String.valueOf(approxTotalSize));
+
+		String dlIp = CodeSyncUtil.getClientIp(request);
+		String dlName = CodeSyncClientCache.getNameByIp(dlIp);
 
 		try (ZipOutputStream zos = new ZipOutputStream(response.getOutputStream())) {
 			byte[] buffer = new byte[8192];
@@ -297,7 +305,7 @@ public class FileShareController {
 				zos.closeEntry();
 
 				// Increment download count for each file included in the ZIP
-				fileService.incrementDownload(file.getFileId());
+				fileService.recordDownload(file.getFileId(), dlIp, dlName);
 			}
 		} catch (Exception e) {
 			CodeSyncLogger.logError(getClass(), "Error creating ZIP for key: " + key, e);
@@ -305,6 +313,20 @@ public class FileShareController {
 				response.reset();
 				response.sendError(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to create ZIP archive.");
 			}
+		}
+	}
+
+	@GetMapping("/{key}/downloaders/{fileId}")
+	public ResponseEntity<List<DownloaderDTO>> downloaders(@PathVariable String key, @PathVariable String fileId) {
+		CodeSyncUtil.validateKey(key);
+		try {
+			CodeSyncSharedFile f = fileService.findByFileId(fileId);
+			if (!f.getShareKey().equals(key)) {
+				return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+			}
+			return ResponseEntity.ok(fileService.getDownloaders(fileId));
+		} catch (IllegalArgumentException e) {
+			return ResponseEntity.notFound().build();
 		}
 	}
 

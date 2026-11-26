@@ -9,6 +9,7 @@ import java.nio.file.StandardCopyOption;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +23,7 @@ import org.springframework.util.unit.DataSize;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.cs.config.CodeSyncLogger;
+import com.cs.dto.DownloaderDTO;
 import com.cs.dto.SharedFileDTO;
 import com.cs.entity.CodeSyncSharedFile;
 import com.cs.exception.FileSizeExceededException;
@@ -30,6 +32,8 @@ import com.cs.repository.CodeSyncSharedFileRepository;
 
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Handles file upload, listing, download, and deletion for a share key.
@@ -42,6 +46,8 @@ import io.github.resilience4j.retry.annotation.Retry;
  */
 @Service
 public class CodeSyncSharedFileService {
+	private final CodeSyncSharedFileRepository repo;
+	private static final ObjectMapper MAPPER = new ObjectMapper();
 
 	@Value("${codesync.max-total-storage:0}")
 	private DataSize maxTotalStorage;
@@ -51,8 +57,6 @@ public class CodeSyncSharedFileService {
 
 	@Value("${codesync.max-file-size}")
 	private DataSize maxFileSize;
-
-	private final CodeSyncSharedFileRepository repo;
 
 	@Value("${codesync.upload-dir}")
 	private String uploadDir;
@@ -167,7 +171,8 @@ public class CodeSyncSharedFileService {
 		return results.stream()
 				.map(f -> new SharedFileDTO(f.getFileId(), f.getOriginalName(), f.getContentType(), f.getFileSize(),
 						f.getUploadedAt(), f.getDownloadCount(), f.getLastDownloadedAt(), f.getUploaderIp(),
-						f.getUploaderName(), f.getExpiresAt()))
+						f.getUploaderName(), f.getExpiresAt(), f.getLastDownloadedByIp(), f.getLastDownloadedByName(),
+						f.getDownloaderCount() == null ? 0L : f.getDownloaderCount()))
 				.collect(Collectors.toList());
 	}
 
@@ -184,28 +189,75 @@ public class CodeSyncSharedFileService {
 	 * Deletes the file from disk and updates its DB record.
 	 */
 	@Transactional
-	public void delete(String fileId) {
+	public void delete(String fileId, String ip, String name) {
 		CodeSyncSharedFile f = findByFileId(fileId);
 		archiveFile(f);
 		f.setIsActive(false);
 		f.setDeletedAt(new Timestamp(System.currentTimeMillis()));
+		f.setDeletedByIp(ip);
+		f.setDeletedByName(name);
 		repo.save(f);
 	}
 
 	@Transactional
-	public void incrementDownload(String fileId) {
-		repo.incrementDownloadCount(fileId);
+	public void recordDownload(String fileId, String ip, String name) {
+		CodeSyncSharedFile f = findByFileId(fileId);
+
+		f.setDownloadCount((f.getDownloadCount() == null ? 0 : f.getDownloadCount()) + 1);
+		f.setLastDownloadedAt(new Timestamp(System.currentTimeMillis()));
+		f.setLastDownloadedByIp(ip);
+		f.setLastDownloadedByName(name);
+
+		List<DownloaderDTO> list = parseDownloaders(f.getDownloaders());
+		boolean found = false;
+		for (int i = 0; i < list.size(); i++) {
+			DownloaderDTO d = list.get(i);
+			if (java.util.Objects.equals(d.ip(), ip)) {
+				// same IP: refresh name if we now know it
+				if ((d.name() == null || d.name().isBlank()) && name != null && !name.isBlank()) {
+					list.set(i, new DownloaderDTO(ip, name));
+				}
+				found = true;
+				break;
+			}
+		}
+		if (!found)
+			list.add(new DownloaderDTO(ip, name));
+
+		try {
+			f.setDownloaders(MAPPER.writeValueAsString(list));
+		} catch (Exception e) {
+			CodeSyncLogger.logError(getClass(), "recordDownload serialize", e);
+		}
+		f.setDownloaderCount((long) list.size());
+		repo.save(f);
+	}
+
+	public List<DownloaderDTO> getDownloaders(String fileId) {
+		return parseDownloaders(findByFileId(fileId).getDownloaders());
+	}
+
+	private List<DownloaderDTO> parseDownloaders(String json) {
+		if (json == null || json.isBlank())
+			return new ArrayList<>();
+		try {
+			return new ArrayList<>(MAPPER.readValue(json, new TypeReference<List<DownloaderDTO>>() {
+			}));
+		} catch (Exception e) {
+			return new ArrayList<>();
+		}
 	}
 
 	@Transactional
-	public int deleteAll(String shareKey) throws IOException {
+	public int deleteAll(String shareKey, String ip, String name) throws IOException {
 		List<CodeSyncSharedFile> files = repo.findByShareKeyAndIsActiveTrueOrderByUploadedAtDesc(shareKey);
-
 		Timestamp now = new Timestamp(System.currentTimeMillis());
 		for (CodeSyncSharedFile f : files) {
 			archiveFile(f);
 			f.setIsActive(false);
 			f.setDeletedAt(now);
+			f.setDeletedByIp(ip);
+			f.setDeletedByName(name);
 		}
 		repo.saveAll(files);
 		return files.size();
@@ -223,6 +275,7 @@ public class CodeSyncSharedFileService {
 			CodeSyncLogger.logInfo("Expired File: " + f.getOriginalName());
 			f.setIsActive(false);
 			f.setDeletedAt(now);
+			f.setDeletedByName("SYSTEM (expired)");
 		});
 		repo.saveAll(expired);
 

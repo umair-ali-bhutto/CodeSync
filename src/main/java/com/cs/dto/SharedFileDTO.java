@@ -17,13 +17,16 @@ public class SharedFileDTO {
 	private String uploaderIp;
 	private String uploaderName;
 	private Timestamp expiresAt;
+	private String lastDownloadedByIp;
+	private String lastDownloadedByName;
+	private Long downloaderCount;
 
 	public SharedFileDTO() {
 	}
 
 	public SharedFileDTO(String fileId, String originalName, String contentType, Long fileSize, Timestamp uploadedAt,
-			Long downloadCount, Timestamp lastDownloadedAt, String uploaderIp, String uploaderName,
-			Timestamp expiresAt) {
+			Long downloadCount, Timestamp lastDownloadedAt, String uploaderIp, String uploaderName, Timestamp expiresAt,
+			String lastDownloadedByIp, String lastDownloadedByName, Long downloaderCount) {
 		this.fileId = fileId;
 		this.originalName = originalName;
 		this.contentType = contentType;
@@ -34,8 +37,13 @@ public class SharedFileDTO {
 		this.uploaderIp = uploaderIp;
 		this.uploaderName = uploaderName;
 		this.expiresAt = expiresAt;
+		this.lastDownloadedByIp = lastDownloadedByIp;
+		this.lastDownloadedByName = lastDownloadedByName;
+		this.downloaderCount = downloaderCount;
 
 	}
+
+	// getter setters
 
 	public String getFileId() {
 		return fileId;
@@ -115,6 +123,30 @@ public class SharedFileDTO {
 
 	public void setExpiresAt(Timestamp expiresAt) {
 		this.expiresAt = expiresAt;
+	}
+
+	public String getLastDownloadedByIp() {
+		return lastDownloadedByIp;
+	}
+
+	public void setLastDownloadedByIp(String lastDownloadedByIp) {
+		this.lastDownloadedByIp = lastDownloadedByIp;
+	}
+
+	public String getLastDownloadedByName() {
+		return lastDownloadedByName;
+	}
+
+	public void setLastDownloadedByName(String lastDownloadedByName) {
+		this.lastDownloadedByName = lastDownloadedByName;
+	}
+
+	public Long getDownloaderCount() {
+		return downloaderCount;
+	}
+
+	public void setDownloaderCount(Long downloaderCount) {
+		this.downloaderCount = downloaderCount;
 	}
 
 }

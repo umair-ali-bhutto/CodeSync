@@ -6,6 +6,37 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ---
 
+## [V-2.1.4] 29-OCT-2026 - 26-NOV-2026
+
+### 26-NOV-2026
+
+- added a feature that displays a dialogue notifying user when an update is about to rollout
+
+### 25-NOV-2026
+
+- added deleted by ip and name in file share table
+- added last downloaded by and list of downloaders in file share table and UI
+- added archival file keep days just like backup keep days
+- added toast notifications (light/dark) with animations, timer line, hover-pause and click-to-dismiss feature
+- added toasts for copy, clear, refresh, upload, download, delete and queue actions, including file names and counts
+- added custom info and confirm dialogs
+- replaced all alert() and confirm() popups with styled dialogs
+- clear button now only empties the editor if the server request succeeds, and shows an error toast if it fails
+
+### 30-OCT-2026
+
+- made fonts local
+- added database archiving and backup
+- removed swagger
+- added tab rememberance
+- fix back to dashboard routes on error page
+- added feature to add and edit clients from ip-management admin page
+
+### 29-OCT-2026
+
+- seperated html css js in seperate files
+- made favicon local
+- will make the highlight js local some other day when it will be required
 
 ## [V-2.1.3] 18-SEP-2026 - 28-OCT-2026
 
@@ -19,8 +50,6 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 - added disk space check so i can return response if file transfers are allowed (windows and linux)
 - added docker file
-
-
 
 ## [V-2.1.2] 19-AUG-2026
 

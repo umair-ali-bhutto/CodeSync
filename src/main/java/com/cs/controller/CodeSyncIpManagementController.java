@@ -17,6 +17,8 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import com.cs.config.CodeSyncLogger;
 import com.cs.service.CodeSyncIpManagementService;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 @Controller
 @RequestMapping("/admin/ip-management")
 @PreAuthorize("hasRole('ADMIN')")
@@ -65,5 +67,40 @@ public class CodeSyncIpManagementController {
 		service.unblockIp(ip.trim());
 		ra.addFlashAttribute("successMsg", "IP " + ip + " has been unblocked.");
 		return "redirect:/admin/ip-management";
+	}
+
+	// ── add client ──
+	@PostMapping("/client/add")
+	public String addClient(@RequestParam("ip") String ip, @RequestParam("name") String name, RedirectAttributes ra) {
+		try {
+			service.addClient(ip, name);
+			CodeSyncLogger.logDebug("Client added: " + ip);
+			ra.addFlashAttribute("successMsg", "Client " + ip.trim() + " added.");
+		} catch (IllegalArgumentException e) {
+			ra.addFlashAttribute("errorMsg", e.getMessage());
+		}
+		return "redirect:/admin/ip-management";
+	}
+
+	// ── edit client ──
+	@PostMapping("/client/update")
+	public String updateClient(@RequestParam("ip") String ip, @RequestParam("name") String name,
+			HttpServletRequest request, RedirectAttributes ra) {
+		try {
+			service.updateClient(ip, name, resolveClientIp(request));
+			CodeSyncLogger.logDebug("Client updated: " + ip);
+			ra.addFlashAttribute("successMsg", "Client " + ip.trim() + " updated.");
+		} catch (IllegalArgumentException e) {
+			ra.addFlashAttribute("errorMsg", e.getMessage());
+		}
+		return "redirect:/admin/ip-management";
+	}
+
+	private String resolveClientIp(HttpServletRequest request) {
+		String xff = request.getHeader("X-Forwarded-For");
+		if (xff != null && !xff.isBlank()) {
+			return xff.split(",")[0].trim();
+		}
+		return request.getRemoteAddr();
 	}
 }

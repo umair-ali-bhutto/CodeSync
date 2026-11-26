@@ -74,6 +74,25 @@ public class CodeSyncSharedFile {
 	@Column(name = "IS_FILE_DELETED_DIRECTLY", nullable = false)
 	private Boolean isFileDeletedDirectly = false;
 
+	@Column(name = "DELETED_BY_IP", length = 64)
+	private String deletedByIp;
+
+	@Column(name = "DELETED_BY_NAME", length = 128)
+	private String deletedByName;
+
+	@Column(name = "LAST_DOWNLOADED_BY_IP", length = 64)
+	private String lastDownloadedByIp;
+
+	@Column(name = "LAST_DOWNLOADED_BY_NAME", length = 128)
+	private String lastDownloadedByName;
+
+	// JSON: [{"ip":"1.2.3.4","name":"Ali"}, ...]
+	@Column(name = "DOWNLOADERS", length = 100000)
+	private String downloaders;
+
+	@Column(name = "DOWNLOADER_COUNT")
+	private Long downloaderCount = 0L;
+
 	@PrePersist
 	public void onCreate() {
 		uploadedAt = new Timestamp(System.currentTimeMillis());
@@ -215,5 +234,53 @@ public class CodeSyncSharedFile {
 
 	public void setIsFileDeletedDirectly(Boolean isFileDeletedDirectly) {
 		this.isFileDeletedDirectly = isFileDeletedDirectly;
+	}
+
+	public String getDeletedByIp() {
+		return deletedByIp;
+	}
+
+	public void setDeletedByIp(String deletedByIp) {
+		this.deletedByIp = deletedByIp;
+	}
+
+	public String getDeletedByName() {
+		return deletedByName;
+	}
+
+	public void setDeletedByName(String deletedByName) {
+		this.deletedByName = deletedByName;
+	}
+
+	public String getLastDownloadedByIp() {
+		return lastDownloadedByIp;
+	}
+
+	public void setLastDownloadedByIp(String lastDownloadedByIp) {
+		this.lastDownloadedByIp = lastDownloadedByIp;
+	}
+
+	public String getLastDownloadedByName() {
+		return lastDownloadedByName;
+	}
+
+	public void setLastDownloadedByName(String lastDownloadedByName) {
+		this.lastDownloadedByName = lastDownloadedByName;
+	}
+
+	public String getDownloaders() {
+		return downloaders;
+	}
+
+	public void setDownloaders(String downloaders) {
+		this.downloaders = downloaders;
+	}
+
+	public Long getDownloaderCount() {
+		return downloaderCount;
+	}
+
+	public void setDownloaderCount(Long downloaderCount) {
+		this.downloaderCount = downloaderCount;
 	}
 }

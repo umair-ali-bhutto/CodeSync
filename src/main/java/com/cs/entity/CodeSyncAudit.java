@@ -45,6 +45,10 @@ public class CodeSyncAudit {
 	@Column(name = "REQUEST_BODY")
 	private String requestBody;
 
+	@Lob
+	@Column(name = "RESPONSE_BODY")
+	private String responseBody;
+
 	@Column(name = "DURATION_MS")
 	private long durationMs;
 
@@ -160,6 +164,14 @@ public class CodeSyncAudit {
 
 	public void setRequestBody(String requestBody) {
 		this.requestBody = requestBody;
+	}
+
+	public String getResponseBody() {
+		return responseBody;
+	}
+
+	public void setResponseBody(String responseBody) {
+		this.responseBody = responseBody;
 	}
 
 	public long getDurationMs() {
