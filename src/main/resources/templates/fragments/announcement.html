@@ -1,0 +1,148 @@
+<!-- ============================================================
+     CODESYNC ANNOUNCEMENT FRAGMENT
+     Location: src/main/resources/templates/fragments/announcement.html
+     Usage:    <div th:replace="~{fragments/announcement :: announcement}"></div>
+     Values come from the "announcement" model attribute (see AnnouncementAdvice.java)
+     ============================================================ -->
+<th:block xmlns:th="http://www.thymeleaf.org" th:fragment="announcement">
+
+    <th:block th:if="${announcement != null and announcement.enabled}">
+
+        <link rel="stylesheet" th:href="@{/css/announcement.css}">
+
+        <div id="codesync-upgrade-overlay">
+            <div class="upgrade-dialog" role="dialog" aria-modal="true" aria-labelledby="upgrade-title">
+
+                <!-- HEADER -->
+                <div class="upgrade-header">
+                    <div class="upgrade-badge">IMPORTANT ANNOUNCEMENT</div>
+                    <div class="upgrade-icon">🚀</div>
+                    <h2 id="upgrade-title" th:text="${announcement.title}">Something BIG Is Coming!</h2>
+                    <p th:text="${announcement.message}">CodeSync is preparing for its next chapter.</p>
+                    <div class="upgrade-date">
+                        📅 <span th:text="${announcement.effectiveDate}">26 NOVEMBER 2026 -- 01:00 PM - 01:30 PM</span>
+                    </div>
+                </div>
+
+                <!-- READING PROGRESS -->
+                <div class="upgrade-progress">
+                    <div class="upgrade-progress-fill" id="upgrade-progress-fill"></div>
+                </div>
+
+                <!-- SCROLLABLE CONTENT -->
+                <div class="upgrade-content" id="upgrade-content">
+                    <p class="upgrade-intro">
+                        Hey there, CodeSync user! 👋
+                        We're working on a major upgrade to make CodeSync better, faster, and more powerful.
+                        But before we move forward, there's something extremely important you need to know.
+                    </p>
+
+                    <div class="upgrade-warning">
+                        <div class="upgrade-warning-title">⚠️ IMPORTANT: DATA WILL BE RESET</div>
+                        <p>
+                            On <strong th:text="${announcement.effectiveDate}">26 NOVEMBER 2026</strong>,
+                            CodeSync will undergo a major upgrade.
+                        </p>
+                        <p>As part of this upgrade, <strong>existing shared data will be removed.</strong></p>
+                        <p>
+                            This means your currently stored content and uploaded files may no longer be
+                            available after the upgrade.
+                        </p>
+                        <p>
+                            <strong>
+                                Please download and safely back up everything important BEFORE
+                                <span th:text="${announcement.backupDeadline}">30 November</span>.
+                            </strong>
+                        </p>
+                    </div>
+
+                    <h3 style="font-size:.98rem;margin-bottom:10px;">📦 What should you save?</h3>
+
+                    <div class="upgrade-data-list">
+                        <div class="upgrade-data-item">
+                            <span>💻</span>
+                            <strong>Code &amp; Text</strong>
+                            Save all important code snippets, notes, configurations and shared text.
+                        </div>
+                        <div class="upgrade-data-item">
+                            <span>📁</span>
+                            <strong>Uploaded Files</strong>
+                            Download important documents, archives, images and other uploaded files.
+                        </div>
+                    </div>
+
+                    <div class="upgrade-info">
+                        <strong>💡 Our recommendation</strong>
+                        Don't wait until the last moment!
+                        Download your files and copy your important text now. Keep at least one backup
+                        on your computer or another trusted storage location.
+                        <br><br>
+                    </div>
+
+                    <div class="upgrade-divider"></div>
+
+                    <div class="upgrade-challenge">
+                        <h3>🧠 Quick Acknowledgement Challenge</h3>
+                        <p>
+                            Before continuing, confirm that you understand the most important instruction
+                            in this announcement. Type the following phrase exactly:
+                        </p>
+
+                        <strong
+                            style="display:block;text-align:center;padding:12px;margin-bottom:12px;border-radius:7px;background:rgba(102,126,234,.13);color:#667eea;letter-spacing:1px;font-size:.92rem;"
+                            th:text="${announcement.requiredPhrase}">I WILL BACK UP MY DATA</strong>
+
+                        <input type="text" id="upgrade-challenge-input"
+                            placeholder="Type the confirmation phrase here..." autocomplete="off" spellcheck="false">
+
+                        <div class="upgrade-challenge-status" id="upgrade-challenge-status">
+                            🔒 Complete this challenge to continue.
+                        </div>
+                    </div>
+
+                    <p style="text-align:center;font-size:.85rem;line-height:1.7;margin-bottom:5px;">
+                        Thank you for using CodeSync and being part of its journey.
+                        <br>
+                        <strong style="color:#0077b6;">Better things are on their way! 💙</strong>
+                    </p>
+                </div>
+
+                <!-- FOOTER -->
+                <div class="upgrade-footer">
+                    <label class="upgrade-agreement" id="upgrade-agreement-row" hidden>
+                        <input type="checkbox" id="upgrade-agreement-checkbox" disabled>
+                        <span style="color: black;">
+                            I have read and understood this announcement.
+                            I acknowledge that existing CodeSync data will be removed during the
+                            <span th:text="${announcement.effectiveDate}">26 NOVEMBER 2026</span>
+                            upgrade, and I agree to back up my important data beforehand.
+                        </span>
+                    </label>
+
+                    <button class="upgrade-accept-btn" id="upgrade-accept-btn" disabled>
+                        🔒 Please Read &amp; Complete the Challenge
+                    </button>
+
+                    <div class="upgrade-bottom-note">
+                        Your acknowledgement will be remembered on this browser.
+                        <span th:if="${!#strings.isEmpty(announcement.expiryDate)}">
+                            <br>
+                            This notice is valid until
+                            <span th:text="${announcement.expiryDate}">26 NOVEMBER 2026</span>.
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pass server values to the external JS (external .js files are not processed by Thymeleaf) -->
+        <script th:inline="javascript">
+            window.CODESYNC_ANNOUNCEMENT = {
+                noticeKey: [[${ announcement.noticeKey }]],
+                requiredPhrase: [[${ announcement.requiredPhrase }]]
+            };
+        </script>
+        <script th:src="@{/js/announcement.js}"></script>
+
+    </th:block>
+</th:block>

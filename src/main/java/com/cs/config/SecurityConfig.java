@@ -100,9 +100,6 @@ public class SecurityConfig {
 						// H2 Console
 						.requestMatchers(h2ConsolePattern).hasRole("ADMIN")
 
-						// swagger
-						.requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").hasRole("ADMIN")
-
 						// EVERYTHING ELSE
 						.anyRequest().authenticated())
 				.exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthenticationEntryPoint)
@@ -285,14 +282,22 @@ public class SecurityConfig {
 
 		String browserInfo = parseClientInfo(userAgent);
 
+		int contentSize = 0;
+		if (body != null && !body.isEmpty()) {
+			contentSize = body.length();
+		} else if (responseBody != null && !responseBody.isEmpty()) {
+			contentSize = responseBody.length();
+		}
+
 		CodeSyncAudit log = new CodeSyncAudit();
 		log.setHttpMethod(method);
 		log.setUri(CodeSyncUtil.validateKeyWithoutException(uri));
 		log.setQueryString(query);
 		log.setClientIp(clientIp);
 		log.setStatusCode(response.getStatus());
-		log.setContentSize(body.length());
+		log.setContentSize(contentSize);
 		log.setRequestBody(body);
+		log.setResponseBody(responseBody);
 		log.setDurationMs(duration);
 		log.setForwardedFor(request.getHeader("X-Forwarded-For"));
 		log.setRealIp(request.getHeader("X-Real-IP"));
@@ -306,8 +311,8 @@ public class SecurityConfig {
 		log.setSecChUaPlatformMobile(secChUa + " | " + secChUaPlatform + " | " + secChUaMobile);
 		log.setAdditionalInfo(additionalData);
 
-		String bodyLog = (body.length() <= 50000) ? " | Body=" + body : " | Body too large not logging";
-		String responseLog = (responseBody.length() <= 50000) ? " | Response=" + responseBody
+		String bodyLog = (body.length() <= 1000) ? " | Body=" + body : " | Body too large not logging";
+		String responseLog = (responseBody.length() <= 1000) ? " | Response=" + responseBody
 				: " | Response too large, not logging";
 
 		String clientName = CodeSyncClientCache.getNameByIp(clientIp);
@@ -334,7 +339,7 @@ public class SecurityConfig {
 				.logInfo("SECURITY FILTER | " + method + " " + uri + uploadInfo + (query != null ? "?" + query : "")
 						+ " | Client=" + clientName + " | IP=" + clientIp + " | browserInfo=" + browserInfo + " | Lang="
 						+ language + " | Ref=" + referer + " | Status=" + response.getStatus() + " | Time=" + duration
-						+ "ms | content size: " + body.length() + "" + bodyLog + responseLog);
+						+ "ms | content size: " + contentSize + "" + bodyLog + responseLog);
 
 		codeSyncAuditService.saveSafely(log);
 

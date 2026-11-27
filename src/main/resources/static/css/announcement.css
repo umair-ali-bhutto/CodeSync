@@ -1,0 +1,437 @@
+/* src/main/resources/static/css/announcement.css
+   Relies on CSS variables from sharePage.css: --card-light, --text-light, --border-light,
+   --editor-bg-light, --accent, --accent-hover  (load sharePage.css first) */
+
+#codesync-upgrade-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 15px;
+    background: rgba(8, 15, 30, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+#codesync-upgrade-overlay.visible {
+    display: flex;
+    animation: upgradeFadeIn .4s ease;
+}
+
+.upgrade-dialog {
+    width: 100%;
+    max-width: 650px;
+    max-height: 92vh;
+    max-height: 92dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+    border-radius: 18px;
+    border: 1px solid transparent;
+    background:
+        linear-gradient(var(--card-light), var(--card-light)) padding-box,
+        linear-gradient(135deg, #005b8a, #667eea, #764ba2, #0077b6) border-box;
+    box-shadow: 0 20px 80px rgba(0, 0, 0, .4);
+    animation: upgradePop .55s cubic-bezier(.34, 1.56, .64, 1);
+}
+
+@keyframes upgradeFadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes upgradePop {
+    from {
+        opacity: 0;
+        transform: translateY(35px) scale(.94);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* ===== Header ===== */
+.upgrade-header {
+    position: relative;
+    overflow: hidden;
+    flex-shrink: 0;
+    padding: 14px 18px 12px;
+    text-align: center;
+    color: white;
+    background: linear-gradient(125deg, #005b8a, #0077b6, #5256a9, #764ba2);
+}
+
+.upgrade-header::before,
+.upgrade-header::after {
+    content: '';
+    position: absolute;
+    border: 1px solid rgba(255, 255, 255, .15);
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.upgrade-header::before {
+    width: 210px;
+    height: 210px;
+    top: -130px;
+    right: -40px;
+}
+
+.upgrade-header::after {
+    width: 160px;
+    height: 160px;
+    bottom: -115px;
+    left: -35px;
+}
+
+.upgrade-badge {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 30px;
+    border: 1px solid rgba(255, 255, 255, .4);
+    background: rgba(255, 255, 255, .15);
+    font-size: .62rem;
+    font-weight: 800;
+    letter-spacing: 1.4px;
+    margin-bottom: 7px;
+    max-width: 100%;
+    white-space: normal;
+    line-height: 1.35;
+    word-break: break-word;
+}
+
+.upgrade-icon {
+    font-size: 1.9rem;
+    line-height: 1.2;
+    margin-bottom: 2px;
+    animation: upgradeFloat 2.5s ease-in-out infinite;
+}
+
+@keyframes upgradeFloat {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-8px);
+    }
+}
+
+.upgrade-header h2 {
+    font-size: clamp(1.15rem, 4vw, 1.5rem);
+    font-weight: 900;
+    letter-spacing: .5px;
+    margin-bottom: 3px;
+    color: white;
+    line-height: 1.25;
+    word-break: break-word;
+}
+
+.upgrade-header p {
+    font-size: .78rem;
+    opacity: .9;
+    line-height: 1.5;
+}
+
+.upgrade-date {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 5px 12px;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, .2);
+    border: 1px solid rgba(255, 255, 255, .25);
+    font-size: .8rem;
+    font-weight: 800;
+    letter-spacing: .6px;
+    max-width: 100%;
+    white-space: normal;
+    word-break: break-word;
+}
+
+/* ===== Scrollable Content ===== */
+.upgrade-content {
+    padding: 22px 25px;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+    color: var(--text-light);
+    scrollbar-width: thin;
+    scrollbar-color: #0077b6 transparent;
+}
+
+.upgrade-intro {
+    text-align: center;
+    font-size: .91rem;
+    line-height: 1.65;
+    margin-bottom: 19px;
+    color: inherit;
+}
+
+.upgrade-warning {
+    padding: 16px;
+    border-radius: 11px;
+    border: 1px solid rgba(224, 82, 82, .4);
+    background: rgba(224, 82, 82, .09);
+    margin-bottom: 17px;
+}
+
+.upgrade-warning-title {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    color: #e05252;
+    font-weight: 900;
+    font-size: 1rem;
+    margin-bottom: 9px;
+}
+
+.upgrade-warning p {
+    font-size: .86rem;
+    line-height: 1.65;
+    margin-bottom: 8px;
+}
+
+.upgrade-warning strong {
+    color: #e05252;
+}
+
+.upgrade-data-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin: 16px 0;
+}
+
+.upgrade-data-item {
+    padding: 13px;
+    border-radius: 10px;
+    border: 1px solid var(--border-light);
+    background: var(--editor-bg-light);
+    font-size: .83rem;
+    line-height: 1.5;
+    min-width: 0;
+    word-break: break-word;
+}
+
+.upgrade-data-item span {
+    display: block;
+    font-size: 1.5rem;
+    margin-bottom: 5px;
+}
+
+.upgrade-data-item strong {
+    display: block;
+    margin-bottom: 3px;
+}
+
+.upgrade-info {
+    padding: 14px;
+    border-radius: 10px;
+    border: 1px solid rgba(0, 119, 182, .3);
+    background: rgba(0, 119, 182, .08);
+    font-size: .84rem;
+    line-height: 1.6;
+    margin-bottom: 18px;
+}
+
+.upgrade-info strong {
+    color: var(--accent-hover);
+}
+
+.upgrade-divider {
+    height: 1px;
+    background: var(--border-light);
+    margin: 19px 0;
+}
+
+/* ===== Reading Challenge ===== */
+.upgrade-challenge {
+    padding: 16px;
+    border-radius: 11px;
+    background: rgba(102, 126, 234, .08);
+    border: 1px solid rgba(102, 126, 234, .35);
+    margin-bottom: 15px;
+}
+
+.upgrade-challenge h3 {
+    font-size: .95rem;
+    margin-bottom: 8px;
+}
+
+.upgrade-challenge p {
+    font-size: .83rem;
+    line-height: 1.6;
+    margin-bottom: 11px;
+}
+
+.upgrade-challenge input {
+    width: 100%;
+    padding: 11px 12px;
+    border-radius: 7px;
+    border: 1.5px solid var(--border-light);
+    background: var(--editor-bg-light);
+    color: var(--text-light);
+    outline: none;
+    font-size: .9rem;
+    font-weight: 600;
+    letter-spacing: .5px;
+}
+
+.upgrade-challenge input:focus {
+    border-color: var(--accent-hover);
+    box-shadow: 0 0 0 3px rgba(0, 119, 182, .12);
+}
+
+.upgrade-challenge-status {
+    font-size: .78rem;
+    margin-top: 8px;
+    min-height: 17px;
+    font-weight: 600;
+}
+
+/* ===== Reading Progress ===== */
+.upgrade-progress {
+    height: 5px;
+    background: rgba(128, 128, 128, .2);
+    flex-shrink: 0;
+}
+
+.upgrade-progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #0077b6, #667eea, #764ba2);
+    transition: width .15s linear;
+}
+
+.upgrade-footer {
+    padding: 9px 18px 11px;
+    border-top: 1px solid var(--border-light);
+    background: var(--card-light);
+    flex-shrink: 0;
+}
+
+.upgrade-agreement {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    font-size: .74rem;
+    line-height: 1.4;
+    margin-bottom: 8px;
+    cursor: pointer;
+}
+
+.upgrade-agreement input {
+    margin-top: 3px;
+    accent-color: var(--accent);
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+
+.upgrade-agreement[hidden] {
+    display: none;
+}
+
+.upgrade-accept-btn {
+    width: 100%;
+    padding: 10px;
+    border: none;
+    border-radius: 9px;
+    color: white;
+    font-size: .85rem;
+    font-weight: 800;
+    letter-spacing: .4px;
+    background: linear-gradient(110deg, #005b8a, #0077b6, #764ba2);
+    cursor: pointer;
+    transition: .2s;
+    box-shadow: 0 4px 15px rgba(0, 91, 138, .25);
+}
+
+.upgrade-accept-btn:disabled {
+    opacity: .35;
+    cursor: not-allowed;
+    box-shadow: none;
+    filter: grayscale(.5);
+}
+
+.upgrade-accept-btn:not(:disabled):hover {
+    transform: translateY(-2px);
+    box-shadow: 0 7px 20px rgba(0, 91, 138, .4);
+}
+
+.upgrade-bottom-note {
+    text-align: center;
+    font-size: .66rem;
+    color: #888;
+    margin-top: 5px;
+    line-height: 1.6;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 480px) {
+    #codesync-upgrade-overlay {
+        padding: 8px;
+    }
+
+    .upgrade-dialog {
+        max-height: 96vh;
+        max-height: 96dvh;
+        border-radius: 13px;
+    }
+
+    .upgrade-header {
+        padding: 20px 15px 18px;
+    }
+
+    .upgrade-icon {
+        font-size: 2.6rem;
+        margin-bottom: 6px;
+    }
+
+    .upgrade-badge {
+        font-size: .66rem;
+        letter-spacing: 1.2px;
+        padding: 4px 11px;
+        margin-bottom: 10px;
+    }
+
+    .upgrade-header h2 {
+        font-size: 1.35rem;
+        margin-bottom: 6px;
+    }
+
+    .upgrade-header p {
+        font-size: .82rem;
+    }
+
+    .upgrade-date {
+        font-size: .88rem;
+        padding: 7px 14px;
+        margin-top: 12px;
+    }
+
+    .upgrade-content {
+        padding: 17px 15px;
+    }
+
+    .upgrade-footer {
+        padding: 13px 15px;
+    }
+
+    .upgrade-data-list {
+        grid-template-columns: 1fr 1fr;
+    }
+}
