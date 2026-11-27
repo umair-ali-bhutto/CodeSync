@@ -48,6 +48,7 @@ before deploy new release make tomcat backup
 	// add issues or report feature directly inside the project with complaint management system
 
 	// add too many request error page
+	// also make it so user gets locked out for some time for hitting too much
 
 	// add a feature that displays what changed in a new release when it is uploaded, and track the IP addresses of users who have already viewed the release notes currently doing feature rollout dialogue will render it dynamically later
 
